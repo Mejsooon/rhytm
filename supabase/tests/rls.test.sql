@@ -7,8 +7,11 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"user_a","role":"authenticated"}';
 
 insert into profiles (weight_kg) values (70);
-insert into blocks (id, title, start_local, duration_min, timezone)
-values ('00000000-0000-0000-0000-00000000000a', 'Blok A', '2026-11-16 09:00', 60, 'Europe/Warsaw');
+insert into categories (id, name, color)
+values ('00000000-0000-0000-0000-0000000000a1', 'Kategoria A', 'blue');
+insert into blocks (id, title, start_local, duration_min, timezone, category_id)
+values ('00000000-0000-0000-0000-00000000000a', 'Blok A', '2026-11-16 09:00', 60, 'Europe/Warsaw',
+        '00000000-0000-0000-0000-0000000000a1');
 insert into block_exceptions (block_id, occurrence_date, cancelled)
 values ('00000000-0000-0000-0000-00000000000a', '2026-11-16', true);
 insert into block_tasks (block_id, occurrence_date, title)
@@ -96,8 +99,9 @@ begin
 
   -- B nie może też podszyć się pod A przez jawny user_id
   begin
-    insert into blocks (user_id, title, start_local, duration_min, timezone)
-    values ('user_a', 'Podszyty', '2026-11-16 10:00', 30, 'Europe/Warsaw');
+    insert into blocks (user_id, title, start_local, duration_min, timezone, category_id)
+    values ('user_a', 'Podszyty', '2026-11-16 10:00', 30, 'Europe/Warsaw',
+            '00000000-0000-0000-0000-0000000000a1');
     raise exception 'FAIL: B wstawił blok jako user_a';
   exception when insufficient_privilege then
     null; -- oczekiwane

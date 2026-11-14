@@ -41,7 +41,7 @@ export function CategoryList({ categories, counts, onToggle, onAdd, onEdit }: Ca
                 style={category.visible ? { background: dot, borderColor: dot } : { background: "transparent", borderColor: dot }}
               />
               <span className="min-w-0 flex-1 truncate">{category.name}</span>
-              <span className="text-xs text-[#9B9A97] group-focus-within:opacity-0 group-hover:opacity-0">
+              <span className="text-xs text-[#9B9A97] group-has-[:focus-visible]:opacity-0 group-hover:opacity-0">
                 {counts[category.id] ?? 0}
               </span>
             </button>
@@ -49,7 +49,7 @@ export function CategoryList({ categories, counts, onToggle, onAdd, onEdit }: Ca
               type="button"
               aria-label={`Edytuj kategorię ${category.name}`}
               onClick={() => onEdit(category)}
-              className="absolute top-1 right-1.5 flex size-6 items-center justify-center rounded-md text-[#7D7C78] opacity-0 outline-none group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-[#EFEFED] hover:text-[#191816] focus-visible:ring-2 focus-visible:ring-ring"
+              className="absolute top-1 right-1.5 flex size-6 items-center justify-center rounded-md text-[#7D7C78] opacity-0 outline-none group-has-[:focus-visible]:opacity-100 group-hover:opacity-100 hover:bg-[#EFEFED] hover:text-[#191816] focus-visible:ring-2 focus-visible:ring-ring"
             >
               <PencilIcon aria-hidden="true" className="size-3.5" />
             </button>

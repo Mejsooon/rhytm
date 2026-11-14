@@ -92,7 +92,10 @@ function CategoryForm({ mode, initial, categories, onSubmit, onCancel }: Categor
             autoFocus
             value={name}
             aria-invalid={error ? true : undefined}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value);
+              setError(null);
+            }}
           />
           {error && (
             <p role="alert" className="text-sm text-destructive-foreground">
@@ -106,7 +109,10 @@ function CategoryForm({ mode, initial, categories, onSubmit, onCancel }: Categor
           <RadioGroupPrimitive
             aria-label="Kolor kategorii"
             value={color}
-            onValueChange={(value) => setColor(value as CategoryColorId)}
+            onValueChange={(value) => {
+              setColor(value as CategoryColorId);
+              setError(null);
+            }}
             className="flex flex-row flex-wrap gap-2"
           >
             {CATEGORY_COLORS.map((c) => {

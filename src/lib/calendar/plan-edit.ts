@@ -47,13 +47,24 @@ export function planEdit(
   const seriesDate = series.startLocal.slice(0, 10);
   const seriesTime = series.startLocal.slice(11, 16);
 
-  // Blok niecykliczny i 'following' na pierwszym wystąpieniu działają jak 'all'.
+  // Przesunięcie dni (N) i nowa godzina wynikające z `change.startLocal`.
+  const shiftDays =
+    change.startLocal !== undefined ? differenceInCalendarDays(parseISO(change.startLocal.slice(0, 10)), parseISO(occurrenceDate)) : 0;
+  const newTime = change.startLocal !== undefined ? change.startLocal.slice(11, 16) : seriesTime;
+
+  // Punkt cięcia dla 'following': nowa seria startuje od min(occurrenceDate, occurrenceDate + N),
+  // a oryginał kończy się dzień przed tym punktem, więc serie nigdy się nie nakładają.
+  const shiftedDate = format(addDays(parseISO(occurrenceDate), shiftDays), 'yyyy-MM-dd');
+  const cut = shiftedDate < occurrenceDate ? shiftedDate : occurrenceDate;
+
+  // Blok niecykliczny i 'following' obejmujące pierwsze wystąpienie (cięcie <= start serii) działają jak 'all'.
   let effectiveScope = scope;
-  if (series.recurrence === null || (scope === 'following' && occurrenceDate === seriesDate)) {
+  if (series.recurrence === null || (scope === 'following' && cut <= seriesDate)) {
     effectiveScope = 'all';
   }
 
   // Pojedyncze wystąpienie: tylko wyjątek, harmonogram serii się nie zmienia.
+  // Wykonawca musi scalić go z istniejącym wyjątkiem dla tej samej daty (upsert z merge pól).
   if (effectiveScope === 'this') {
     const exception: BlockException = { blockId: series.id, occurrenceDate, cancelled: false };
     if (change.startLocal !== undefined) exception.startLocal = change.startLocal;
@@ -64,12 +75,8 @@ export function planEdit(
     return { mutations: [{ kind: 'upsertException', exception }], droppedTaskDates: [] };
   }
 
-  // Przesunięcie dni (N) i nowa godzina wynikające z `change.startLocal`.
-  const shiftDays =
-    change.startLocal !== undefined ? differenceInCalendarDays(parseISO(change.startLocal.slice(0, 10)), parseISO(occurrenceDate)) : 0;
-  const newTime = change.startLocal !== undefined ? change.startLocal.slice(11, 16) : seriesTime;
-
-  // Data startu zmienianej serii: dla 'all' data startu oryginału + N, dla 'following' occurrenceDate + N.
+  // Data startu zmienianej serii: dla 'all' data startu oryginału + N (wyjątki przypięte do starych
+  // dat zostają wtedy osierocone), dla 'following' occurrenceDate + N.
   const baseDate = effectiveScope === 'all' ? seriesDate : occurrenceDate;
   const newStartDate = format(addDays(parseISO(baseDate), shiftDays), 'yyyy-MM-dd');
   const newStartLocal = `${newStartDate}T${newTime}`;
@@ -86,7 +93,7 @@ export function planEdit(
   };
 
   // Które zadania są objęte zmianą: wszystkie dla 'all', od occurrenceDate dla 'following'.
-  const relevantDates = effectiveScope === 'all' ? [...taskDates] : taskDates.filter((d) => d >= occurrenceDate);
+  const relevantDates = effectiveScope === 'all' ? [...taskDates] : taskDates.filter((d) => d >= cut);
   let droppedTaskDates: string[] = [];
   if (relevantDates.length > 0) {
     const sorted = [...relevantDates].sort();
@@ -117,11 +124,11 @@ export function planEdit(
   // 'following' (wystąpienie nie jest pierwsze, więc seria jest cykliczna):
   // 1) nowa seria, 2) przeniesienie dzieci, 3) sprzątanie zadań, 4) skrócenie oryginału.
   mutations.push({ kind: 'insertSeries', tempId: NEW_SERIES_TEMP_ID, series: updated });
-  mutations.push({ kind: 'moveChildren', fromId: series.id, toTempId: NEW_SERIES_TEMP_ID, fromDate: occurrenceDate });
+  mutations.push({ kind: 'moveChildren', fromId: series.id, toTempId: NEW_SERIES_TEMP_ID, fromDate: cut });
   if (droppedTaskDates.length > 0) {
     mutations.push({ kind: 'deleteTasksOn', blockId: NEW_SERIES_TEMP_ID, dates: droppedTaskDates });
   }
-  const dayBefore = format(addDays(parseISO(occurrenceDate), -1), 'yyyy-MM-dd');
+  const dayBefore = format(addDays(parseISO(cut), -1), 'yyyy-MM-dd');
   mutations.push({
     kind: 'updateSeries',
     id: series.id,

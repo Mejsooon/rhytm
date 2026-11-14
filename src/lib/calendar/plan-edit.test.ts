@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { expandOccurrences } from './expand';
 import { planDelete, planEdit } from './plan-edit';
 import type { BlockSeries } from './types';
 
@@ -91,6 +92,21 @@ describe('planEdit', () => {
     expect(plan.mutations).toContainEqual({ kind: 'deleteTasksOn', blockId: 'new-series', dates: ['2026-11-21'] });
     // zadanie sprzed occurrenceDate zostaje przy oryginale
     expect(plan.mutations.at(-1)?.kind).toBe('updateSeries');
+  });
+
+  it('following z ujemnym przesunięciem: brak nakładania serii', () => {
+    const plan = planEdit(daily, '2026-11-18', 'following', { startLocal: '2026-11-17T09:00' }, ['2026-11-17', '2026-11-18']);
+    const inserted = plan.mutations[0];
+    const shortened = plan.mutations[2];
+    expect(inserted.kind === 'insertSeries' && inserted.series.startLocal).toBe('2026-11-17T09:00');
+    expect(plan.mutations[1]).toEqual({ kind: 'moveChildren', fromId: 'b1', toTempId: 'new-series', fromDate: '2026-11-17' });
+    expect(shortened).toEqual({ kind: 'updateSeries', id: 'b1', patch: { recurrence: { freq: 'daily', until: '2026-11-16' } } });
+    expect(plan.droppedTaskDates).toEqual([]);
+    // Żadna data nie pojawia się w obu seriach.
+    if (inserted.kind !== 'insertSeries' || shortened.kind !== 'updateSeries') throw new Error('zły plan');
+    const original = expandOccurrences({ ...daily, ...shortened.patch }, [], '2026-11-14', '2026-11-22').map((o) => o.occurrenceDate);
+    const created = expandOccurrences({ ...inserted.series, id: 'n' }, [], '2026-11-14', '2026-11-22').map((o) => o.occurrenceDate);
+    expect(original.filter((d) => created.includes(d))).toEqual([]);
   });
 
   it('following na pierwszym wystąpieniu = all', () => {

@@ -40,9 +40,9 @@ describe('occurrenceToEvent', () => {
 });
 
 describe('paleta', () => {
-  it('ma 6 stałych kolorów z wartościami z projektu', () => {
-    expect(CATEGORY_COLORS.map((c) => c.id)).toEqual(['blue', 'green', 'orange', 'red', 'purple', 'gray']);
-    expect(categoryColor('orange')).toMatchObject({ bg: '#FFF1EA', border: '#FFDBCA', bar: '#DF6C32', ink: '#7C350E' });
+  it('ma 8 stałych kolorów z wartościami z projektu', () => {
+    expect(CATEGORY_COLORS.map((c) => c.id)).toEqual(['blue', 'teal', 'gray', 'rose', 'orange', 'violet', 'green', 'amber']);
+    expect(categoryColor('orange')).toMatchObject({ bg: '#FBF3EE', border: '#F1DDD0', dot: '#D9733A', ink: '#8A4520' });
   });
 });
 

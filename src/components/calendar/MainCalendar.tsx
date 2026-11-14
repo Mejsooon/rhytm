@@ -42,7 +42,7 @@ const VIEWS = [
 
 // Reguły .rh-ev-<id> z jedynej palety (colors.ts), żeby CSS nie powtarzał wartości kolorów.
 const CATEGORY_CSS = CATEGORY_COLORS.map(
-  (c) => `.rh-ev-${c.id}{--rh-bg:${c.bg};--rh-border:${c.border};--rh-bar:${c.bar};--rh-ink:${c.ink}}`,
+  (c) => `.rh-ev-${c.id}{--rh-bg:${c.bg};--rh-border:${c.border};--rh-bar:${c.dot};--rh-ink:${c.ink}}`,
 ).join("");
 
 type FormState = { mode: "create"; initial: BlockFormValue } | { mode: "edit"; initial: BlockFormValue; occurrence: CalendarOccurrence };

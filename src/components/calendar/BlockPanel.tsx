@@ -131,7 +131,7 @@ export function BlockPanel({ occurrence, timezone, onChanged, onEdit, onDelete, 
         closeProps={{ "aria-label": "Zamknij panel" }}
       >
         <div className="flex items-start gap-3 p-5 pe-14 max-md:p-4 max-md:pe-14">
-          <span aria-hidden="true" className="mt-1.5 size-3.5 shrink-0 rounded-[4px]" style={{ background: color.bar }} />
+          <span aria-hidden="true" className="mt-1.5 size-3.5 shrink-0 rounded-[4px]" style={{ background: color.dot }} />
           <div className="min-w-0">
             <SheetTitle className="text-[22px] leading-tight break-words">{occurrence.title}</SheetTitle>
             <p className="mt-1 text-sm text-muted-foreground">{occurrenceHeading(occurrence, timezone)}</p>
@@ -159,7 +159,7 @@ export function BlockPanel({ occurrence, timezone, onChanged, onEdit, onDelete, 
             aria-valuemax={100}
             aria-valuenow={Math.round(progress.percent)}
           >
-            <div className="h-full rounded-full transition-[width]" style={{ width: `${progress.percent}%`, background: color.bar }} />
+            <div className="h-full rounded-full transition-[width]" style={{ width: `${progress.percent}%`, background: color.dot }} />
           </div>
 
           <ul className="mt-3 flex flex-col" aria-label="Lista zadań">

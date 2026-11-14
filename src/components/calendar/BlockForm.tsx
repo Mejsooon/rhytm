@@ -145,9 +145,9 @@ export function BlockForm({ open, mode, initialValue, onSubmit, onDelete, onOpen
                         "flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         selected ? "border-[1.5px]" : "border-input bg-background text-foreground/80",
                       )}
-                      style={selected ? { background: category.bg, borderColor: category.bar, color: category.ink } : undefined}
+                      style={selected ? { background: category.bg, borderColor: category.dot, color: category.ink } : undefined}
                     >
-                      <span aria-hidden="true" className="size-2 rounded-full" style={{ background: category.bar }} />
+                      <span aria-hidden="true" className="size-2 rounded-full" style={{ background: category.dot }} />
                       {category.label}
                     </button>
                   );

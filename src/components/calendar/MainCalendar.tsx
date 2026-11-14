@@ -13,7 +13,7 @@ import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/classic/theme.css";
 import "@fullcalendar/react/themes/classic/palette.css";
 import "./calendar.css";
-import { createBlock, deleteBlock, editBlock, listOccurrences, previewEdit } from "@/app/(app)/kalendarz/actions";
+import { createBlock, deleteBlock, editBlock, previewEdit } from "@/app/(app)/kalendarz/actions";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl, SegmentedControlItem } from "@/components/ui/segmented-control";
 import { ToastProvider, toastManager } from "@/components/ui/toast";
@@ -84,11 +84,19 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
     calendarRef.current?.getApi().changeView(isMobile ? "timeGridDay" : "timeGridWeek");
   }, [isMobile]);
 
-  // Źródło zdarzeń: widoczny zakres dat -> listOccurrences. Błąd pokazujemy w toaście i zwracamy pustą listę.
+  // Źródło zdarzeń: widoczny zakres dat -> GET /api/occurrences. FullCalendar woła tę funkcję w trakcie
+  // renderowania, dlatego to zwykły fetch, a nie Server Action (akcja aktualizowałaby Router Next.js
+  // w środku renderu). JSON nie przenosi dat, więc start/end zamieniamy z powrotem na Date.
+  // Błąd pokazujemy w toaście i zwracamy pustą listę.
   const loadEvents = useCallback(async (info: { startStr: string; endStr: string }) => {
     const { from, to } = visibleDateRange(info.startStr, info.endStr);
     try {
-      return (await listOccurrences(from, to)).map(occurrenceToEvent);
+      const res = await fetch(`/api/occurrences?from=${from}&to=${to}`, { cache: "no-store" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Nie udało się wczytać kalendarza");
+      return (body as CalendarOccurrence[]).map((o) =>
+        occurrenceToEvent({ ...o, start: new Date(o.start), end: new Date(o.end) }),
+      );
     } catch (error) {
       toastManager.add({
         type: "error",

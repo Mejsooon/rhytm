@@ -1,0 +1,115 @@
+/* Dopasowanie FullCalendar v7 (motyw classic) do tokenów coss i Rhytm z globals.css. */
+
+.rh-calendar {
+  --fc-classic-background: var(--background);
+  --fc-classic-foreground: var(--foreground);
+  --fc-classic-muted-foreground: var(--muted-foreground);
+  --fc-classic-faint-foreground: var(--muted-foreground);
+  --fc-classic-border: var(--border);
+  --fc-classic-strong-border: var(--input);
+  --fc-classic-faint: var(--muted);
+  --fc-classic-muted: var(--muted);
+  --fc-classic-strong: var(--accent);
+  --fc-classic-today: transparent;
+  --fc-classic-highlight: color-mix(in srgb, var(--info) 10%, transparent);
+  /* Linia „teraz” w kolorze sportu/akcentu (#DF6C32). */
+  --fc-classic-now: var(--sport);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+/* Weekendy lekko przyciemnione. */
+.rh-calendar .rh-weekend {
+  background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+/* Nagłówek dnia: „pon 16”, dzisiejszy numer w pomarańczowej pigułce. */
+.rh-calendar .rh-day-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.rh-calendar .rh-day-number {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.rh-calendar .rh-day-number[data-today] {
+  background: var(--sport);
+  color: #fff;
+}
+
+/* Godziny w osi czasu: mono 11px. */
+.rh-calendar .rh-slot-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+/*
+ * Bloki: tło, ramka i ink z klasy kategorii (.rh-ev-<id>, zmienne --rh-* generuje MainCalendar z palety),
+ * pasek 3px z lewej jako wewnętrzny cień. Podwojona klasa przebija reguły motywu bez !important.
+ */
+.rh-calendar .rh-ev.rh-ev {
+  background-color: var(--rh-bg);
+  border: 1px solid var(--rh-border);
+  border-radius: 9px;
+  box-shadow: inset 3px 0 0 var(--rh-bar);
+  color: var(--rh-ink);
+  overflow: hidden;
+}
+
+.rh-calendar .rh-ev-body {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 8px 5px 11px;
+  text-align: left;
+}
+
+.rh-calendar .rh-ev-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.rh-calendar .rh-ev-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.rh-calendar .rh-ev-progress {
+  margin-top: auto;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--rh-bar) 22%, transparent);
+}
+
+.rh-calendar .rh-ev-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--rh-bar);
+}

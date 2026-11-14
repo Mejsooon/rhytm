@@ -1,0 +1,20 @@
+# Minimalna konfiguracja zgodna z Supabase CLI.
+project_id = "rhytm"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+# Clerk jako zewnętrzny dostawca uwierzytelniania (Supabase Auth nieużywany).
+# Domena instancji wpisana wprost: to wartość publiczna, nie sekret.
+[auth.third_party.clerk]
+enabled = true
+domain = "witty-adder-8419.clerk.accounts.dev"

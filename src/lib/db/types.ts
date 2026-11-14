@@ -1,0 +1,163 @@
+// Ręcznie utrzymane typy w kształcie `Database` z supabase-js
+// (odpowiednik `supabase gen types typescript`). Aktualizować razem z migracjami.
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type Database = {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          user_id: string;
+          weight_kg: number | null;
+          height_cm: number | null;
+          birth_date: string | null;
+          sex: string | null;
+          timezone: string;
+        };
+        Insert: {
+          user_id?: string;
+          weight_kg?: number | null;
+          height_cm?: number | null;
+          birth_date?: string | null;
+          sex?: string | null;
+          timezone?: string;
+        };
+        Update: {
+          user_id?: string;
+          weight_kg?: number | null;
+          height_cm?: number | null;
+          birth_date?: string | null;
+          sex?: string | null;
+          timezone?: string;
+        };
+        Relationships: [];
+      };
+      blocks: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          color: string;
+          note: string | null;
+          start_local: string;
+          duration_min: number;
+          timezone: string;
+          recurrence: Json | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          title: string;
+          color?: string;
+          note?: string | null;
+          start_local: string;
+          duration_min: number;
+          timezone: string;
+          recurrence?: Json | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          color?: string;
+          note?: string | null;
+          start_local?: string;
+          duration_min?: number;
+          timezone?: string;
+          recurrence?: Json | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      block_exceptions: {
+        Row: {
+          block_id: string;
+          occurrence_date: string;
+          cancelled: boolean;
+          start_local: string | null;
+          duration_min: number | null;
+          title: string | null;
+          color: string | null;
+          note: string | null;
+        };
+        Insert: {
+          block_id: string;
+          occurrence_date: string;
+          cancelled?: boolean;
+          start_local?: string | null;
+          duration_min?: number | null;
+          title?: string | null;
+          color?: string | null;
+          note?: string | null;
+        };
+        Update: {
+          block_id?: string;
+          occurrence_date?: string;
+          cancelled?: boolean;
+          start_local?: string | null;
+          duration_min?: number | null;
+          title?: string | null;
+          color?: string | null;
+          note?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "block_exceptions_block_id_fkey";
+            columns: ["block_id"];
+            isOneToOne: false;
+            referencedRelation: "blocks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      block_tasks: {
+        Row: {
+          id: string;
+          block_id: string;
+          occurrence_date: string;
+          title: string;
+          done: boolean;
+          position: number;
+        };
+        Insert: {
+          id?: string;
+          block_id: string;
+          occurrence_date: string;
+          title: string;
+          done?: boolean;
+          position?: number;
+        };
+        Update: {
+          id?: string;
+          block_id?: string;
+          occurrence_date?: string;
+          title?: string;
+          done?: boolean;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "block_tasks_block_id_fkey";
+            columns: ["block_id"];
+            isOneToOne: false;
+            referencedRelation: "blocks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
+  };
+};

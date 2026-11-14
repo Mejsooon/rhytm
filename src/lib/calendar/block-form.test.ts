@@ -44,11 +44,11 @@ describe('formToRecurrence', () => {
 });
 
 describe('formularz bloku', () => {
-  const base = { ...emptyBlockForm('2026-11-19T08:00', 120), title: '  Nauka matma ', note: ' ' };
+  const base = { ...emptyBlockForm('2026-11-19T08:00', 120, '11111111-1111-4111-8111-111111111111'), title: '  Nauka matma ', note: ' ' };
 
   it('emptyBlockForm liczy koniec z czasu trwania i przycina do północy', () => {
-    expect(base).toMatchObject({ date: '2026-11-19', startTime: '08:00', endTime: '10:00', repeat: 'none' });
-    expect(emptyBlockForm('2026-11-19T23:00', 120).endTime).toBe('23:59');
+    expect(base).toMatchObject({ date: '2026-11-19', startTime: '08:00', endTime: '10:00', repeat: 'none', categoryId: '11111111-1111-4111-8111-111111111111' });
+    expect(emptyBlockForm('2026-11-19T23:00', 120, '11111111-1111-4111-8111-111111111111').endTime).toBe('23:59');
   });
 
   it('formDurationMin wymaga końca po początku', () => {
@@ -60,7 +60,7 @@ describe('formularz bloku', () => {
   it('formToNewBlock buduje wejście createBlock', () => {
     expect(formToNewBlock({ ...base, repeat: 'weekdays', until: '2027-01-31' })).toEqual({
       title: 'Nauka matma',
-      color: 'blue',
+      categoryId: '11111111-1111-4111-8111-111111111111',
       note: null,
       startLocal: '2026-11-19T08:00',
       durationMin: 120,
@@ -76,7 +76,7 @@ describe('formularz bloku', () => {
 
 describe('formToChange: tylko zmienione pola (finding 1, 3, 5)', () => {
   // Formularz edycji wystąpienia 18.11, 08:00–10:00 w strefie profilu (Warszawa).
-  const initial = { ...emptyBlockForm('2026-11-18T08:00', 120), title: 'Nauka', note: 'n', repeat: 'weekly' as const };
+  const initial = { ...emptyBlockForm('2026-11-18T08:00', 120, '11111111-1111-4111-8111-111111111111'), title: 'Nauka', note: 'n', repeat: 'weekly' as const };
 
   it('sama zmiana nazwy nie wysyła startu ani długości', () => {
     expect(formToChange({ ...initial, title: ' Matma ' }, initial, 'Europe/Warsaw')).toEqual({ title: 'Matma' });
@@ -97,7 +97,7 @@ describe('formToChange: tylko zmienione pola (finding 1, 3, 5)', () => {
   });
 
   it('notatka wyczyszczona to null; kolor', () => {
-    expect(formToChange({ ...initial, note: '  ', color: 'red' }, initial, 'Europe/Warsaw')).toEqual({ note: null, color: 'red' });
+    expect(formToChange({ ...initial, note: '  ', categoryId: '22222222-2222-4222-8222-222222222222' }, initial, 'Europe/Warsaw')).toEqual({ note: null, categoryId: '22222222-2222-4222-8222-222222222222' });
   });
 
   it('zmiana powtarzania (także na brak i data końca) trafia do zmiany', () => {
@@ -116,7 +116,7 @@ describe('blockFormFromOccurrence', () => {
     start: new Date('2026-11-19T07:00:00Z'),
     end: new Date('2026-11-19T09:00:00Z'),
     title: 'Nauka',
-    color: 'red',
+    categoryId: '22222222-2222-4222-8222-222222222222',
     note: 'n',
     recurring: true,
     recurrence: null,
@@ -124,7 +124,7 @@ describe('blockFormFromOccurrence', () => {
 
   it('czyta godziny w strefie profilu', () => {
     const form = blockFormFromOccurrence(occurrence, 'Europe/Warsaw');
-    expect(form).toMatchObject({ date: '2026-11-19', startTime: '08:00', endTime: '10:00', color: 'red', note: 'n', repeat: 'none' });
+    expect(form).toMatchObject({ date: '2026-11-19', startTime: '08:00', endTime: '10:00', categoryId: '22222222-2222-4222-8222-222222222222', note: 'n', repeat: 'none' });
   });
 
   it('wypełnia powtarzanie z serii (finding 3)', () => {

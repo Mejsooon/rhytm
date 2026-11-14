@@ -10,12 +10,12 @@ export type Scope = 'this' | 'following' | 'all';
  * np. z `Date.toISOString()`), a nie lokalny napis: na czas lokalny przelicza ją `planEdit`
  * w strefie BLOKU, więc zmiana strefy w profilu nie przesuwa edytowanych bloków.
  */
-export type BlockChange = Partial<Pick<BlockSeries, 'title' | 'color' | 'note' | 'durationMin' | 'recurrence'>> & {
+export type BlockChange = Partial<Pick<BlockSeries, 'title' | 'categoryId' | 'note' | 'durationMin' | 'recurrence'>> & {
   start?: string;
 };
 
 /** Pola wyjątku, które można wyczyścić (wrócić do wartości z serii). */
-export type ExceptionField = 'startLocal' | 'durationMin' | 'title' | 'color' | 'note';
+export type ExceptionField = 'startLocal' | 'durationMin' | 'title' | 'categoryId' | 'note';
 
 /**
  * Mutacje do wykonania przez warstwę zapisu, w podanej kolejności.
@@ -100,7 +100,7 @@ export function planEdit(
     if (changeStartLocal !== undefined) ex.startLocal = changeStartLocal;
     if (change.durationMin !== undefined) ex.durationMin = change.durationMin;
     if (change.title !== undefined) ex.title = change.title;
-    if (change.color !== undefined) ex.color = change.color;
+    if (change.categoryId !== undefined) ex.categoryId = change.categoryId;
     if (change.note !== undefined) ex.note = change.note;
     return { mutations: [{ kind: 'upsertException', exception: ex }], droppedTaskDates: [] };
   }
@@ -112,7 +112,7 @@ export function planEdit(
   // Nowa wersja serii (wspólna dla 'all' i 'following').
   const updated: Omit<BlockSeries, 'id'> = {
     title: change.title ?? series.title,
-    color: change.color ?? series.color,
+    categoryId: change.categoryId ?? series.categoryId,
     note: change.note !== undefined ? change.note : series.note,
     startLocal: `${newStartDate}T${newTime}`,
     durationMin: change.durationMin ?? series.durationMin,
@@ -161,7 +161,7 @@ export function planEdit(
     if (change.start !== undefined && exception.startLocal !== undefined) clearFields.push('startLocal');
     if (change.durationMin !== undefined && exception.durationMin !== undefined) clearFields.push('durationMin');
     if (change.title !== undefined && exception.title !== undefined) clearFields.push('title');
-    if (change.color !== undefined && exception.color !== undefined) clearFields.push('color');
+    if (change.categoryId !== undefined && exception.categoryId !== undefined) clearFields.push('categoryId');
     if (change.note !== undefined && exception.note !== undefined) clearFields.push('note');
   }
   // Po przesunięciu dzieci wyjątek edytowanego wystąpienia leży już pod datą occurrenceDate + N.
@@ -174,7 +174,7 @@ export function planEdit(
     // poza zadaniami, które i tak miały zniknąć (deleteTasksOn jest ostatnie).
     const patch: Partial<Omit<BlockSeries, 'id'>> = {};
     if (change.title !== undefined) patch.title = change.title;
-    if (change.color !== undefined) patch.color = change.color;
+    if (change.categoryId !== undefined) patch.categoryId = change.categoryId;
     if (change.note !== undefined) patch.note = change.note;
     if (change.durationMin !== undefined) patch.durationMin = change.durationMin;
     if (change.start !== undefined) patch.startLocal = updated.startLocal;

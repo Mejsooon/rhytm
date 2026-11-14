@@ -8,7 +8,7 @@ export type Recurrence =
 export type BlockSeries = {
   id: string;
   title: string;
-  color: string;
+  categoryId: string;
   note: string | null;
   startLocal: string; // 'YYYY-MM-DDTHH:mm'
   durationMin: number;
@@ -23,7 +23,7 @@ export type BlockException = {
   startLocal?: string;
   durationMin?: number;
   title?: string;
-  color?: string;
+  categoryId?: string;
   note?: string | null;
 };
 
@@ -33,7 +33,7 @@ export type Occurrence = {
   start: Date;
   end: Date;
   title: string;
-  color: string;
+  categoryId: string;
   note: string | null;
   recurring: boolean;
   recurrence: Recurrence | null; // powtarzanie serii (do wypełnienia formularza edycji)

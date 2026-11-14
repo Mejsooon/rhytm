@@ -38,7 +38,7 @@ export function BlockPanel({ occurrence, timezone, onChanged, onEdit, onDelete, 
   const [tasks, setTasks] = useState<BlockTask[] | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
-  const color = categoryColor(occurrence.color);
+  const color = categoryColor('gray'); // tymczasowo: kolor z listy kategorii dojdzie w Zadaniu 9
   const progress = taskProgress(tasks ?? []);
 
   // Wczytanie listy zadań. Rodzic montuje panel z `key` wystąpienia, więc każde wystąpienie zaczyna od pustego stanu;

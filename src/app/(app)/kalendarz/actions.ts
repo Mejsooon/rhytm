@@ -30,7 +30,7 @@ export async function createBlock(input: Omit<BlockSeries, "id" | "timezone">): 
     title: input.title,
     durationMin: input.durationMin,
     startLocal: input.startLocal,
-    color: input.color,
+    categoryId: input.categoryId,
     recurrence: input.recurrence,
   });
 
@@ -39,7 +39,7 @@ export async function createBlock(input: Omit<BlockSeries, "id" | "timezone">): 
   const supabase = await createServerClient();
   const row = seriesToRow({
     title: title!,
-    color: input.color,
+    categoryId: input.categoryId,
     note: input.note,
     startLocal: input.startLocal,
     durationMin: input.durationMin,
@@ -61,7 +61,7 @@ async function planBlockEdit(blockId: string, occurrenceDate: string, scope: Sco
   validateBlockFields({
     title: change.title,
     durationMin: change.durationMin,
-    color: change.color,
+    categoryId: change.categoryId,
     recurrence: change.recurrence,
   });
   const supabase = await createServerClient();

@@ -79,7 +79,7 @@ export function expandOccurrences(
       start,
       end,
       title: ex?.title ?? series.title,
-      color: ex?.color ?? series.color,
+      categoryId: ex?.categoryId ?? series.categoryId,
       note: ex && ex.note !== undefined ? ex.note : series.note,
       recurring: rec !== null,
       recurrence: rec,

@@ -18,9 +18,7 @@ import { SegmentedControl, SegmentedControlItem } from "@/components/ui/segmente
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formDurationMin, type BlockFormValue, type RepeatMode } from "@/lib/calendar/block-form";
-import { CATEGORY_COLORS } from "@/lib/calendar/colors";
 import type { Weekday } from "@/lib/calendar/types";
-import { cn } from "@/lib/utils";
 
 const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: "none", label: "Nie" },
@@ -130,31 +128,7 @@ export function BlockForm({ open, mode, initialValue, onSubmit, onDelete, onOpen
               <span className="text-xs text-muted-foreground">{durationLabel}</span>
             </div>
 
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm font-medium">Kategoria</legend>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORY_COLORS.map((category) => {
-                  const selected = value.color === category.id;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => setValue({ ...value, color: category.id })}
-                      className={cn(
-                        "flex h-[34px] items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        selected ? "border-[1.5px]" : "border-input bg-background text-foreground/80",
-                      )}
-                      style={selected ? { background: category.bg, borderColor: category.dot, color: category.ink } : undefined}
-                    >
-                      <span aria-hidden="true" className="size-2 rounded-full" style={{ background: category.dot }} />
-                      {category.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-
+            {/* Wybór kategorii dojdzie w Zadaniu 9 (lista kategorii po stronie klienta). */}
             {/* Powtarzanie także przy edycji: zmiana zapisuje się tylko dla „To i następne” albo „Wszystkie”. */}
             <fieldset className="flex flex-col gap-2.5">
               <legend className="mb-2 text-sm font-medium">Powtarzanie</legend>

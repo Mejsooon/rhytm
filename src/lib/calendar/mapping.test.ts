@@ -5,7 +5,7 @@ const base = {
   id: 'b1',
   user_id: 'user_1',
   title: 'Nauka',
-  color: 'blue',
+  category_id: '11111111-1111-4111-8111-111111111111',
   note: null,
   start_local: '2026-11-16T09:00',
   duration_min: 90,
@@ -18,11 +18,11 @@ describe('mapping wierszy bloków', () => {
     const row = { ...base, recurrence: null };
     const series = rowToSeries(row);
     expect(series).toEqual({
-      id: 'b1', title: 'Nauka', color: 'blue', note: null,
+      id: 'b1', title: 'Nauka', categoryId: '11111111-1111-4111-8111-111111111111', note: null,
       startLocal: '2026-11-16T09:00', durationMin: 90, timezone: 'Europe/Warsaw', recurrence: null,
     });
     expect(seriesToRow(series)).toEqual({
-      id: 'b1', title: 'Nauka', color: 'blue', note: null,
+      id: 'b1', title: 'Nauka', category_id: '11111111-1111-4111-8111-111111111111', note: null,
       start_local: '2026-11-16T09:00', duration_min: 90, timezone: 'Europe/Warsaw', recurrence: null,
     });
   });
@@ -46,8 +46,8 @@ describe('rowToException', () => {
     expect(
       rowToException({
         block_id: 'b1', occurrence_date: '2026-11-16', cancelled: false,
-        start_local: '2026-11-18T12:00:00', duration_min: null, title: null, color: 'red', note: null,
+        start_local: '2026-11-18T12:00:00', duration_min: null, title: null, category_id: '22222222-2222-4222-8222-222222222222', note: null,
       }),
-    ).toEqual({ blockId: 'b1', occurrenceDate: '2026-11-16', cancelled: false, startLocal: '2026-11-18T12:00:00', color: 'red' });
+    ).toEqual({ blockId: 'b1', occurrenceDate: '2026-11-16', cancelled: false, startLocal: '2026-11-18T12:00:00', categoryId: '22222222-2222-4222-8222-222222222222' });
   });
 });

@@ -95,7 +95,7 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Nie udało się wczytać kalendarza");
       return (body as CalendarOccurrence[]).map((o) =>
-        occurrenceToEvent({ ...o, start: new Date(o.start), end: new Date(o.end) }),
+        occurrenceToEvent({ ...o, start: new Date(o.start), end: new Date(o.end) }, () => "gray"),
       );
     } catch (error) {
       toastManager.add({
@@ -169,12 +169,12 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
   function handleSelect(info: DateSelectInfo) {
     calendarRef.current?.getApi().unselect();
     if (info.allDay) {
-      setForm({ mode: "create", initial: emptyBlockForm(`${info.startStr.slice(0, 10)}T09:00`, 60) });
+      setForm({ mode: "create", initial: emptyBlockForm(`${info.startStr.slice(0, 10)}T09:00`, 60, "") });
       return;
     }
     const startLocal = toLocalString(info.start, timezone);
     const durationMin = Math.round((info.end.getTime() - info.start.getTime()) / 60_000);
-    setForm({ mode: "create", initial: emptyBlockForm(startLocal, durationMin) });
+    setForm({ mode: "create", initial: emptyBlockForm(startLocal, durationMin, "") });
   }
 
   function handleEventClick(info: EventClickInfo) {
@@ -185,7 +185,7 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
 
   // Przycisk „+”: blok na najbliższą pełną godzinę, na godzinę.
   function openNewBlock() {
-    setForm({ mode: "create", initial: emptyBlockForm(nextFullHour(new Date(), timezone), 60) });
+    setForm({ mode: "create", initial: emptyBlockForm(nextFullHour(new Date(), timezone), 60, "") });
   }
 
   async function submitForm(value: BlockFormValue) {

@@ -5,7 +5,7 @@ import type { BlockException, BlockSeries } from './types';
 const base: BlockSeries = {
   id: 'b1',
   title: 'Blok',
-  color: '#fff',
+  categoryId: '11111111-1111-4111-8111-111111111111',
   note: null,
   startLocal: '2026-11-16T08:00',
   durationMin: 60,

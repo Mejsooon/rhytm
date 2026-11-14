@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Rhytm",
     short_name: "Rhytm",
     lang: "pl",
-    start_url: "/kalendarz",
+    start_url: "/dzis",
     display: "standalone",
     theme_color: "#191816",
     background_color: "#FBFAF7",

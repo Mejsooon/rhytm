@@ -35,6 +35,8 @@ cp .env.local.example .env.local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → **Project Settings → API** → klucz `anon` / publishable. |
 
 Pozostałe zmienne `NEXT_PUBLIC_CLERK_*` (adresy logowania i przekierowań) zostaw takie jak we wzorze.
+`NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` (i `..._SIGN_UP_...`) = `/dzis`: po zalogowaniu aplikacja
+otwiera ekran „Dziś”. Jeśli masz starszy `.env.local` z `/kalendarz`, zmień te dwie wartości.
 
 ### Krok 3. Połącz Clerka z Supabase (najważniejszy krok)
 

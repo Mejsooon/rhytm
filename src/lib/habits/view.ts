@@ -6,7 +6,7 @@ const DAY_FORMAT = 'yyyy-MM-dd';
 const WEEKDAY_CHIPS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd']; // ISO 1..7
 
 /** Polish noun form for a count: 1 → one, 2–4 (not 12–14) → few, otherwise → many. */
-function pluralForm(count: number, one: string, few: string, many: string): string {
+export function pluralForm(count: number, one: string, few: string, many: string): string {
   if (count === 1) return one;
   const lastDigit = count % 10;
   const lastTwo = count % 100;

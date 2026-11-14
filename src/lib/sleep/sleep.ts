@@ -23,7 +23,7 @@ const DAY_FORMAT = 'yyyy-MM-dd';
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MIN_SLEEP_MINUTES = 30;
 const MAX_SLEEP_MINUTES = 16 * 60;
-const MONTH_SHORT_NAMES = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+export const MONTH_SHORT_NAMES = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
 /**
  * Minutes slept in the night that ended on `date` (the wake-up day). When

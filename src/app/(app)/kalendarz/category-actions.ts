@@ -46,18 +46,21 @@ export async function updateCategory(
   if (!current) throw new Error("Nie znaleziono kategorii");
   if (patch.visible !== undefined && typeof patch.visible !== "boolean") throw new Error("Nieprawidłowa widoczność");
 
-  // Pola spoza patcha zostają bez zmian; walidujemy zawsze pełną parę nazwa + kolor.
-  const { name, color } = validateCategoryInput(
-    { name: patch.name ?? current.name, color: patch.color ?? current.color },
-    all.data,
-    id,
-  );
-  const { data, error } = await supabase
-    .from("categories")
-    .update({ name, color, ...(patch.visible !== undefined && { visible: patch.visible }) })
-    .eq("id", id)
-    .select("*")
-    .single();
+  // Do bazy trafiają tylko pola obecne w patchu. Nazwę i kolor walidujemy razem (brakujące pole bierzemy z bieżącego wiersza).
+  const update: { name?: string; color?: string; visible?: boolean } = {};
+  if (patch.name !== undefined || patch.color !== undefined) {
+    const valid = validateCategoryInput(
+      { name: patch.name ?? current.name, color: patch.color ?? current.color },
+      all.data,
+      id,
+    );
+    if (patch.name !== undefined) update.name = valid.name;
+    if (patch.color !== undefined) update.color = valid.color;
+  }
+  if (patch.visible !== undefined) update.visible = patch.visible;
+  if (Object.keys(update).length === 0) return rowToCategory(current);
+
+  const { data, error } = await supabase.from("categories").update(update).eq("id", id).select("*").single();
   if (error) {
     if (error.code === UNIQUE_VIOLATION) throw new Error(DUPLICATE_NAME_ERROR);
     throw new Error(`Nie udało się zapisać kategorii: ${error.message}`);

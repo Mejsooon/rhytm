@@ -43,6 +43,18 @@ describe("ensureProfile", () => {
     expect(profile.timezone).toBe("Europe/Warsaw");
   });
 
+  it("przy braku kategorii robi upsert, insert kategorii, potem odczyt", async () => {
+    categoryCount = 0;
+    await ensureProfile();
+    expect(calls).toEqual(["upsert", "insert categories", "select"]);
+  });
+
+  it("rzuca błąd, gdy zapytanie o liczbę kategorii się nie powiedzie", async () => {
+    categoriesSelect.mockResolvedValueOnce({ count: null as never, error: { message: "count boom" } as never });
+    await expect(ensureProfile()).rejects.toThrow("ensureCategories: count boom");
+    expect(single).not.toHaveBeenCalled();
+  });
+
   it("rzuca błąd, gdy upsert się nie powiedzie", async () => {
     upsert.mockResolvedValueOnce({ error: { message: "boom" } } as never);
     await expect(ensureProfile()).rejects.toThrow("ensureProfile: boom");

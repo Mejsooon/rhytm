@@ -40,7 +40,7 @@ function makeClient(handler: (op: Op) => { data?: unknown; error?: { message: st
   return { client: client as never, ops };
 }
 
-const series = { title: 'Nauka', color: 'blue', note: null, startLocal: '2026-11-16T09:00', durationMin: 60, timezone: 'Europe/Warsaw', recurrence: null };
+const series = { title: 'Nauka', categoryId: '11111111-1111-4111-8111-111111111111', note: null, startLocal: '2026-11-16T09:00', durationMin: 60, timezone: 'Europe/Warsaw', recurrence: null };
 
 describe('executeMutations', () => {
   it('podmienia tempId na prawdziwe id po insertSeries w kolejnych mutacjach', async () => {
@@ -68,18 +68,18 @@ describe('executeMutations', () => {
   it('scala upsertException z istniejącym wyjątkiem tej samej daty', async () => {
     const existing = {
       block_id: 'b1', occurrence_date: '2026-11-17', cancelled: false,
-      start_local: null, duration_min: 45, title: 'Stary tytuł', color: null, note: 'stara notatka',
+      start_local: null, duration_min: 45, title: 'Stary tytuł', category_id: null, note: 'stara notatka',
     };
     const { client, ops } = makeClient((op) => (op.op === 'select' ? { data: existing } : { data: null }));
     await executeMutations(client, [
-      { kind: 'upsertException', exception: { blockId: 'b1', occurrenceDate: '2026-11-17', cancelled: false, title: 'Nowy tytuł', color: 'red' } },
+      { kind: 'upsertException', exception: { blockId: 'b1', occurrenceDate: '2026-11-17', cancelled: false, title: 'Nowy tytuł', categoryId: '22222222-2222-4222-8222-222222222222' } },
     ]);
     const up = ops.find((o) => o.op === 'upsert')!;
     expect(up.table).toBe('block_exceptions');
     expect(up.opts).toEqual({ onConflict: 'block_id,occurrence_date' });
     expect(up.values).toEqual({
       block_id: 'b1', occurrence_date: '2026-11-17', cancelled: false,
-      start_local: null, duration_min: 45, title: 'Nowy tytuł', color: 'red', note: 'stara notatka',
+      start_local: null, duration_min: 45, title: 'Nowy tytuł', category_id: '22222222-2222-4222-8222-222222222222', note: 'stara notatka',
     });
   });
 

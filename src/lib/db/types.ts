@@ -39,12 +39,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      categories: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          color: string;
+          position: number;
+          visible: boolean;
+          is_system: boolean;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          name: string;
+          color: string;
+          position?: number;
+          visible?: boolean;
+          is_system?: boolean;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          color?: string;
+          position?: number;
+          visible?: boolean;
+          is_system?: boolean;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       blocks: {
         Row: {
           id: string;
           user_id: string;
           title: string;
-          color: string;
+          category_id: string;
           note: string | null;
           start_local: string;
           duration_min: number;
@@ -56,7 +89,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           title: string;
-          color?: string;
+          category_id: string;
           note?: string | null;
           start_local: string;
           duration_min: number;
@@ -68,7 +101,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           title?: string;
-          color?: string;
+          category_id?: string;
           note?: string | null;
           start_local?: string;
           duration_min?: number;
@@ -86,7 +119,7 @@ export type Database = {
           start_local: string | null;
           duration_min: number | null;
           title: string | null;
-          color: string | null;
+          category_id: string | null;
           note: string | null;
         };
         Insert: {
@@ -96,7 +129,7 @@ export type Database = {
           start_local?: string | null;
           duration_min?: number | null;
           title?: string | null;
-          color?: string | null;
+          category_id?: string | null;
           note?: string | null;
         };
         Update: {
@@ -106,7 +139,7 @@ export type Database = {
           start_local?: string | null;
           duration_min?: number | null;
           title?: string | null;
-          color?: string | null;
+          category_id?: string | null;
           note?: string | null;
         };
         Relationships: [

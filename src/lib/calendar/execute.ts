@@ -54,7 +54,7 @@ export async function executeMutations(supabase: SupabaseClient<Database>, mutat
         if (ex.startLocal !== undefined) row.start_local = ex.startLocal;
         if (ex.durationMin !== undefined) row.duration_min = ex.durationMin;
         if (ex.title !== undefined) row.title = ex.title;
-        if (ex.color !== undefined) row.color = ex.color;
+        if (ex.categoryId !== undefined) row.category_id = ex.categoryId;
         if (ex.note !== undefined) row.note = ex.note;
         const res = await supabase.from('block_exceptions').upsert(row, { onConflict: 'block_id,occurrence_date' });
         error = res.error;
@@ -122,7 +122,7 @@ export async function executeMutations(supabase: SupabaseClient<Database>, mutat
       }
       case 'clearExceptionFields': {
         // Wybrane pola wyjątku wracają do wartości z serii (null = brak nadpisania).
-        const columns = { startLocal: 'start_local', durationMin: 'duration_min', title: 'title', color: 'color', note: 'note' } as const;
+        const columns = { startLocal: 'start_local', durationMin: 'duration_min', title: 'title', categoryId: 'category_id', note: 'note' } as const;
         const patch: Database['public']['Tables']['block_exceptions']['Update'] = {};
         for (const field of m.fields) patch[columns[field]] = null;
         const res = await supabase

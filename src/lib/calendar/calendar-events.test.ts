@@ -8,7 +8,7 @@ const occ: CalendarOccurrence = {
   start: new Date('2026-11-18T07:00:00Z'),
   end: new Date('2026-11-18T08:30:00Z'),
   title: 'Nauka',
-  color: 'green',
+  categoryId: '11111111-1111-4111-8111-111111111111',
   note: null,
   recurring: true,
   recurrence: { freq: 'daily' },
@@ -18,15 +18,15 @@ const occ: CalendarOccurrence = {
 
 describe('occurrenceToEvent', () => {
   it('dodaje licznik zadań do tytułu', () => {
-    expect(occurrenceToEvent(occ).title).toBe('Nauka · 1/2');
+    expect(occurrenceToEvent(occ, () => 'green').title).toBe('Nauka · 1/2');
   });
 
   it('bez zadań zostawia sam tytuł', () => {
-    expect(occurrenceToEvent({ ...occ, taskDone: 0, taskTotal: 0 }).title).toBe('Nauka');
+    expect(occurrenceToEvent({ ...occ, taskDone: 0, taskTotal: 0 }, () => 'green').title).toBe('Nauka');
   });
 
   it('przenosi chwile jako ISO i klasę koloru kategorii', () => {
-    const ev = occurrenceToEvent(occ);
+    const ev = occurrenceToEvent(occ, () => 'green');
     expect(ev.start).toBe('2026-11-18T07:00:00.000Z');
     expect(ev.end).toBe('2026-11-18T08:30:00.000Z');
     expect(ev.class).toBe('rh-ev rh-ev-green');
@@ -34,15 +34,16 @@ describe('occurrenceToEvent', () => {
     expect(ev.occurrence).toBe(occ);
   });
 
-  it('nieznany kolor wraca jako szary', () => {
-    expect(occurrenceToEvent({ ...occ, color: 'pink' }).class).toBe('rh-ev rh-ev-gray');
+  it('kolor z colorOf wybiera klasę, nieznany wraca jako szary', () => {
+    expect(occurrenceToEvent(occ, () => 'violet').class).toBe('rh-ev rh-ev-violet');
+    expect(occurrenceToEvent(occ, () => 'pink' as never).class).toBe('rh-ev rh-ev-gray');
   });
 });
 
 describe('paleta', () => {
-  it('ma 6 stałych kolorów z wartościami z projektu', () => {
-    expect(CATEGORY_COLORS.map((c) => c.id)).toEqual(['blue', 'green', 'orange', 'red', 'purple', 'gray']);
-    expect(categoryColor('orange')).toMatchObject({ bg: '#FFF1EA', border: '#FFDBCA', bar: '#DF6C32', ink: '#7C350E' });
+  it('ma 8 stałych kolorów z wartościami z projektu', () => {
+    expect(CATEGORY_COLORS.map((c) => c.id)).toEqual(['blue', 'teal', 'gray', 'rose', 'orange', 'violet', 'green', 'amber']);
+    expect(categoryColor('orange')).toMatchObject({ bg: '#FBF3EE', border: '#F1DDD0', dot: '#D9733A', ink: '#8A4520' });
   });
 });
 

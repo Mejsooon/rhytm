@@ -7,12 +7,12 @@ type ExceptionRow = Database['public']['Tables']['block_exceptions']['Row'];
 
 /** Wiersz z tabeli `blocks` (kolumny snake_case) → typ domenowy serii. */
 export function rowToSeries(
-  row: Pick<BlockRow, 'id' | 'title' | 'color' | 'note' | 'start_local' | 'duration_min' | 'timezone' | 'recurrence'>,
+  row: Pick<BlockRow, 'id' | 'title' | 'category_id' | 'note' | 'start_local' | 'duration_min' | 'timezone' | 'recurrence'>,
 ): BlockSeries {
   return {
     id: row.id,
     title: row.title,
-    color: row.color,
+    categoryId: row.category_id,
     note: row.note,
     startLocal: row.start_local,
     durationMin: row.duration_min,
@@ -30,7 +30,7 @@ export function seriesToRow(series: Partial<BlockSeries>): Partial<BlockInsert> 
   const row: Partial<BlockInsert> = {};
   if (series.id !== undefined) row.id = series.id;
   if (series.title !== undefined) row.title = series.title;
-  if (series.color !== undefined) row.color = series.color;
+  if (series.categoryId !== undefined) row.category_id = series.categoryId;
   if (series.note !== undefined) row.note = series.note;
   if (series.startLocal !== undefined) row.start_local = series.startLocal;
   if (series.durationMin !== undefined) row.duration_min = series.durationMin;
@@ -48,7 +48,7 @@ export function rowToException(row: ExceptionRow): BlockException {
     ...(row.start_local !== null && { startLocal: row.start_local }),
     ...(row.duration_min !== null && { durationMin: row.duration_min }),
     ...(row.title !== null && { title: row.title }),
-    ...(row.color !== null && { color: row.color }),
+    ...(row.category_id !== null && { categoryId: row.category_id }),
     ...(row.note !== null && { note: row.note }),
   };
 }

@@ -26,11 +26,13 @@ async function fetchSeries(blockId: string): Promise<BlockSeries> {
 }
 
 export async function createBlock(input: Omit<BlockSeries, "id" | "timezone">): Promise<string> {
+  // Nowy blok zawsze ma kategorię; validateBlockFields sprawdza kategorię tylko, gdy jest podana (przy edycji bywa pominięta).
+  if (typeof input.categoryId !== "string" || input.categoryId === "") throw new Error("Nieznana kategoria");
   const { title } = validateBlockFields({
     title: input.title,
     durationMin: input.durationMin,
     startLocal: input.startLocal,
-    color: input.color,
+    categoryId: input.categoryId,
     recurrence: input.recurrence,
   });
 
@@ -39,7 +41,7 @@ export async function createBlock(input: Omit<BlockSeries, "id" | "timezone">): 
   const supabase = await createServerClient();
   const row = seriesToRow({
     title: title!,
-    color: input.color,
+    categoryId: input.categoryId,
     note: input.note,
     startLocal: input.startLocal,
     durationMin: input.durationMin,
@@ -61,7 +63,7 @@ async function planBlockEdit(blockId: string, occurrenceDate: string, scope: Sco
   validateBlockFields({
     title: change.title,
     durationMin: change.durationMin,
-    color: change.color,
+    categoryId: change.categoryId,
     recurrence: change.recurrence,
   });
   const supabase = await createServerClient();

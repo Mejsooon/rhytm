@@ -6,14 +6,14 @@ import {
   AlertDialog,
   AlertDialogClose,
   AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
   AlertDialogPopup,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Radio, RadioGroup } from "@/components/ui/radio-group";
 import type { Scope } from "@/lib/calendar/plan-edit";
+import { cn } from "@/lib/utils";
+import { QUIET_BUTTON_DARK, QUIET_BUTTON_DESTRUCTIVE, QUIET_BUTTON_LIGHT, QUIET_CARD } from "./quiet-classes";
 
 const SCOPES: { value: Scope; label: string }[] = [
   { value: "this", label: "Tylko to wydarzenie" },
@@ -64,13 +64,17 @@ export function ScopeDialog({
         if (!next) onCancel();
       }}
     >
-      <AlertDialogPopup>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
+      <AlertDialogPopup className={cn("max-w-[400px]", QUIET_CARD)}>
+        <div className="flex flex-col gap-3.5 p-5">
+          <div className="flex flex-col gap-1">
+            <AlertDialogTitle className="font-sans text-base leading-6 font-semibold text-[#191816]">
+              {title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] leading-normal text-[#7D7C78]">
+              {description}
+            </AlertDialogDescription>
+          </div>
 
-        <div className="flex flex-col gap-3 px-6 pb-2">
           {recurring && (
             <RadioGroup
               aria-label="Zakres zmiany"
@@ -79,18 +83,18 @@ export function ScopeDialog({
                 setScope(value as Scope);
                 onScopeChange?.(value as Scope);
               }}
-              className="gap-2"
+              className="gap-1.5"
             >
               {SCOPES.filter((option) => allowThis || option.value !== "this").map((option) => (
                 <label
                   key={option.value}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 has-data-checked:border-foreground has-data-checked:bg-background"
+                  className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-[#E6E6E4] px-3 py-2.5 has-data-checked:border-[#37352F]"
                 >
                   <Radio value={option.value} className="mt-0.5" />
-                  <span className="flex flex-col gap-0.5">
-                    <span className="text-sm font-semibold">{option.label}</span>
+                  <span className="flex flex-col gap-px">
+                    <span className="text-[13px] font-medium">{option.label}</span>
                     {scopeHints[option.value] && (
-                      <span className="text-[13px] text-muted-foreground">{scopeHints[option.value]}</span>
+                      <span className="text-xs text-[#7D7C78]">{scopeHints[option.value]}</span>
                     )}
                   </span>
                 </label>
@@ -101,20 +105,23 @@ export function ScopeDialog({
           {droppedTaskCount > 0 && (
             <div
               role="status"
-              className="flex gap-2.5 rounded-xl bg-[#FFF1EA] p-3 text-[13px] leading-snug text-[#7C350E]"
+              className="flex gap-2 rounded-lg border border-[#F3E4C4] bg-[#FFF9EE] px-3 py-2.5 text-xs leading-[1.45] text-[#7A5414]"
             >
-              <TriangleAlertIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <TriangleAlertIcon aria-hidden="true" className="mt-px size-[15px] shrink-0" />
               <span>Zadania w {droppedTaskCount} wystąpieniach, które znikną, zostaną usunięte</span>
             </div>
           )}
-        </div>
 
-        <AlertDialogFooter variant="bare">
-          <AlertDialogClose render={<Button variant="outline" />}>Anuluj</AlertDialogClose>
-          <Button variant={destructive ? "destructive" : "default"} onClick={() => onPick(recurring ? scope : "all")}>
-            {confirmLabel}
-          </Button>
-        </AlertDialogFooter>
+          <div className="flex justify-end gap-2">
+            <AlertDialogClose render={<Button className={QUIET_BUTTON_LIGHT} />}>Anuluj</AlertDialogClose>
+            <Button
+              className={destructive ? QUIET_BUTTON_DESTRUCTIVE : QUIET_BUTTON_DARK}
+              onClick={() => onPick(recurring ? scope : "all")}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
       </AlertDialogPopup>
     </AlertDialog>
   );

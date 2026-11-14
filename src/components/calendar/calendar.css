@@ -1,77 +1,119 @@
-/* Dopasowanie FullCalendar v7 (motyw classic) do tokenów coss i Rhytm z globals.css. */
+/*
+ * FullCalendar v7 (motyw classic) w cichym stylu Rhytm. Klasy motywu są haszowane, więc stylujemy
+ * własne klasy z opcji *Class w MainCalendar. Reguły mają dwie klasy (.rh-calendar .rh-…), żeby przebić
+ * jednoklasowe reguły motywu bez !important.
+ */
 
 .rh-calendar {
-  --fc-classic-background: var(--background);
-  --fc-classic-foreground: var(--foreground);
-  --fc-classic-muted-foreground: var(--muted-foreground);
-  --fc-classic-faint-foreground: var(--muted-foreground);
-  --fc-classic-border: var(--border);
-  --fc-classic-strong-border: var(--input);
-  --fc-classic-faint: var(--muted);
-  --fc-classic-muted: var(--muted);
-  --fc-classic-strong: var(--accent);
+  --fc-classic-background: #ffffff;
+  --fc-classic-foreground: #191816;
+  --fc-classic-muted-foreground: #7d7c78;
+  --fc-classic-faint-foreground: #9b9a97;
+  /* Domyślne obramowania = linie siatki; kolumny i nagłówek nadpisane niżej. */
+  --fc-classic-border: var(--grid-line);
+  --fc-classic-strong-border: #eaeae8;
+  --fc-classic-faint: #f7f7f6;
+  --fc-classic-muted: #f4f4f3;
+  --fc-classic-strong: #efefed;
   --fc-classic-today: transparent;
-  --fc-classic-highlight: color-mix(in srgb, var(--info) 10%, transparent);
-  /* Linia „teraz” w kolorze sportu/akcentu (#DF6C32). */
-  --fc-classic-now: var(--sport);
+  --fc-classic-highlight: rgba(55, 53, 47, 0.06);
+  --fc-classic-now: var(--now);
   font-family: var(--font-sans);
-  font-size: 14px;
-  color: var(--foreground);
+  font-size: 13px;
+  color: #191816;
 }
 
-/* Weekendy lekko przyciemnione. */
+/* Siatka czasu: linie co godzinę, półgodzinne niewidoczne. */
+.rh-calendar .rh-slot-minor {
+  border-color: transparent;
+}
+
+/* Kolumny dni i komórki miesiąca rozdzielone jaśniejszą linią. */
+.rh-calendar .rh-lane,
+.rh-calendar .rh-cell,
+.rh-calendar .rh-day-head,
+.rh-calendar .rh-axis-divider {
+  border-color: #f0f0ee;
+}
+
+/* Pod nagłówkiem dni pełna linia karty. */
+.rh-calendar .rh-head-divider {
+  border-color: #eaeae8;
+}
+
+/* Weekend (i dni spoza miesiąca w widoku miesiąca). */
 .rh-calendar .rh-weekend {
-  background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+  background-color: #fcfcfb;
 }
 
-/* Nagłówek dnia: „pon 16”, dzisiejszy numer w pomarańczowej pigułce. */
+/* Nagłówek dnia: „pon 16”, dzisiejszy numer w ciemnym kole 22 px. */
 .rh-calendar .rh-day-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 4px;
+  padding: 5px 4px;
   font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
+  font-weight: 400;
+  color: #7d7c78;
 }
 
 .rh-calendar .rh-day-number {
   display: inline-flex;
-  min-width: 24px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--foreground);
+  font-weight: 500;
+  color: #37352f;
 }
 
 .rh-calendar .rh-day-number[data-today] {
-  background: var(--sport);
+  background: #191816;
   color: #fff;
+  font-weight: 600;
 }
 
-/* Godziny w osi czasu: mono 11px. */
+/* Godziny 11 px, wyśrodkowane na linii swojej godziny (pierwsza zostaje pod nagłówkiem, żeby nie była ucięta). */
 .rh-calendar .rh-slot-label {
-  font-family: var(--font-mono);
+  margin-block: 0;
   font-size: 11px;
-  color: var(--muted-foreground);
+  line-height: 12px;
+  color: #9b9a97;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.rh-calendar .rh-slot-label.rh-slot-first {
+  margin-top: 3px;
+  transform: none;
+}
+
+/* Linia „teraz” z kropką na początku; strzałka w osi godzin zbędna. */
+.rh-calendar .rh-now-header {
+  display: none;
+}
+
+/* Kropka FullCalendar (NowIndicatorDot) leży w punkcie `top` linii, na początku kolumny dnia. */
+.rh-calendar .rh-now-dot {
+  width: 6px;
+  height: 6px;
+  margin-top: -2.5px;
+  margin-left: -3px;
+  border-radius: 3px;
+  background: var(--now);
 }
 
 /*
- * Bloki: tło, ramka i ink z klasy kategorii (.rh-ev-<id>, zmienne --rh-* generuje MainCalendar z palety),
- * pasek 3px z lewej jako wewnętrzny cień. Podwojona klasa przebija reguły motywu bez !important.
+ * Bloki: tło, ramka, ink i mid z klasy kategorii (.rh-ev-<id>, zmienne --rh-* generuje MainCalendar
+ * z palety w colors.ts). Bez lewego paska. Podwojona klasa przebija reguły motywu.
  */
 .rh-calendar .rh-ev.rh-ev {
   background-color: var(--rh-bg);
   border: 1px solid var(--rh-border);
-  border-radius: 9px;
-  box-shadow: inset 3px 0 0 var(--rh-bar);
+  border-radius: 6px;
+  box-shadow: none;
   color: var(--rh-ink);
   overflow: hidden;
 }
@@ -80,36 +122,117 @@
   display: flex;
   min-height: 100%;
   flex-direction: column;
-  gap: 2px;
-  padding: 5px 8px 5px 11px;
+  gap: 1px;
+  padding: 4px 7px;
   text-align: left;
 }
 
 .rh-calendar .rh-ev-title {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.25;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--rh-ink);
+}
+
+.rh-calendar .rh-ev-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rh-calendar .rh-ev-time {
-  font-family: var(--font-mono);
   font-size: 11px;
-  opacity: 0.8;
+  line-height: 1.3;
+  color: var(--rh-mid);
 }
 
 .rh-calendar .rh-ev-progress {
   margin-top: auto;
   height: 3px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--rh-bar) 22%, transparent);
+  background: color-mix(in srgb, var(--rh-dot) 18%, transparent);
 }
 
 .rh-calendar .rh-ev-progress > span {
   display: block;
   height: 100%;
   border-radius: 2px;
-  background: var(--rh-bar);
+  background: var(--rh-mid);
+}
+
+/* Widok miesiąca: numer dnia w komórce, dziś w ciemnym kole. */
+.rh-calendar .rh-cell-number {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #37352f;
+}
+
+.rh-calendar .rh-other .rh-cell-number {
+  color: #b8b7b4;
+}
+
+.rh-calendar .rh-cell-number[data-today] {
+  background: #191816;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Żeton: kropka koloru, godzina, tytuł. */
+.rh-calendar .rh-chip {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.rh-calendar .rh-chip-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--rh-dot);
+}
+
+.rh-calendar .rh-chip-time {
+  flex: none;
+  color: var(--rh-mid);
+}
+
+.rh-calendar .rh-chip-title {
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--rh-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rh-calendar .rh-other .rh-ev {
+  opacity: 0.55;
+}
+
+.rh-calendar .rh-more {
+  font-size: 11px;
+  color: #9b9a97;
+}
+
+.rh-calendar .rh-hidden {
+  display: none;
+}
+
+/* Numer dnia w komórce miesiąca po lewej. */
+.rh-calendar .rh-cell-top {
+  justify-content: flex-start;
 }

@@ -24,7 +24,7 @@ describe('occurrenceHeading', () => {
     start: new Date('2026-11-18T07:00:00Z'),
     end: new Date('2026-11-18T10:00:00Z'),
     title: 'Nauka',
-    color: 'green',
+    categoryId: '11111111-1111-4111-8111-111111111111',
     note: null,
     recurring: true,
     recurrence: { freq: 'daily' },

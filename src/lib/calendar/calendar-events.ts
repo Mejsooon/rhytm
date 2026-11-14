@@ -1,5 +1,5 @@
 import { addDays, format, parseISO } from 'date-fns';
-import { categoryColor } from './colors';
+import { categoryColor, type CategoryColorId } from './colors';
 import type { Occurrence } from './types';
 
 /** Wystąpienie bloku z licznikami zadań (wynik `listOccurrences`). */
@@ -7,16 +7,16 @@ export type CalendarOccurrence = Occurrence & { taskDone: number; taskTotal: num
 
 /**
  * Zamienia wystąpienie na zdarzenie FullCalendar. Tytuł z licznikiem zadań: „Nauka · 1/2”.
- * `class` niesie kolor kategorii (reguły CSS powstają z palety w colors.ts),
+ * `class` niesie kolor kategorii (z `colorOf` po id kategorii) (reguły CSS powstają z palety w colors.ts),
  * a pełne wystąpienie jedzie w `occurrence`, żeby handlery nie musiały go odtwarzać.
  */
-export function occurrenceToEvent(o: CalendarOccurrence) {
+export function occurrenceToEvent(o: CalendarOccurrence, colorOf: (categoryId: string) => CategoryColorId) {
   return {
     id: `${o.blockId}|${o.occurrenceDate}`,
     title: o.taskTotal > 0 ? `${o.title} · ${o.taskDone}/${o.taskTotal}` : o.title,
     start: o.start.toISOString(),
     end: o.end.toISOString(),
-    class: `rh-ev rh-ev-${categoryColor(o.color).id}`,
+    class: `rh-ev rh-ev-${categoryColor(colorOf(o.categoryId)).id}`,
     occurrence: o,
   };
 }

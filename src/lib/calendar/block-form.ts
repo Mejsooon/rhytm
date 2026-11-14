@@ -7,7 +7,7 @@ export type RepeatMode = 'none' | 'daily' | 'weekdays' | 'weekly' | 'custom';
 /** Stan formularza bloku. Daty i godziny są lokalne (w strefie z profilu). */
 export type BlockFormValue = {
   title: string;
-  color: string;
+  categoryId: string;
   note: string;
   date: string; // 'YYYY-MM-DD'
   startTime: string; // 'HH:mm'
@@ -34,12 +34,12 @@ export function nextFullHour(now: Date, timezone: string): string {
 }
 
 /** Pusty formularz dla zakresu lokalnych napisów (zaznaczenie w kalendarzu lub przycisk „+”). */
-export function emptyBlockForm(startLocal: string, durationMin: number): BlockFormValue {
+export function emptyBlockForm(startLocal: string, durationMin: number, categoryId: string): BlockFormValue {
   const startMs = new Date(`${startLocal}:00Z`).getTime();
   const end = new Date(startMs + durationMin * 60_000).toISOString();
   return {
     title: '',
-    color: 'blue',
+    categoryId,
     note: '',
     date: startLocal.slice(0, 10),
     startTime: startLocal.slice(11, 16),
@@ -57,7 +57,7 @@ export function blockFormFromOccurrence(o: Occurrence, timezone: string): BlockF
   const end = toLocalString(o.end, timezone);
   return {
     title: o.title,
-    color: o.color,
+    categoryId: o.categoryId,
     note: o.note ?? '',
     date: start.slice(0, 10),
     startTime: start.slice(11, 16),
@@ -96,7 +96,7 @@ export function formToNewBlock(value: BlockFormValue): Omit<BlockSeries, 'id' | 
   if (title === '') throw new Error('Podaj nazwę bloku');
   return {
     title,
-    color: value.color,
+    categoryId: value.categoryId,
     note: value.note.trim() === '' ? null : value.note.trim(),
     startLocal: `${value.date}T${value.startTime}`,
     durationMin: formDurationMin(value),
@@ -121,7 +121,7 @@ export function formToChange(value: BlockFormValue, initial: BlockFormValue, tim
 
   const change: BlockChange = {};
   if (title !== initial.title.trim()) change.title = title;
-  if (value.color !== initial.color) change.color = value.color;
+  if (value.categoryId !== initial.categoryId) change.categoryId = value.categoryId;
   if (note !== initialNote) change.note = note;
   if (startLocal !== `${initial.date}T${initial.startTime}`) change.start = fromZonedTime(startLocal, timezone).toISOString();
   if (durationMin !== formDurationMin(initial)) change.durationMin = durationMin;

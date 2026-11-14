@@ -4,10 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --accent: #F5F3F0;
+  --accent: #EFEFED;
   --accent-foreground: var(--color-neutral-800);
-  --background: #FBFAF7;
-  --border: #E9E7E5;
+  --background: #FFFFFF;
+  --border: #EAEAE8;
   --card: #FFFFFF;
   --card-foreground: var(--color-neutral-800);
   --destructive: #C7362F;
@@ -16,13 +16,13 @@
   --info: #2971C6;
   --info-foreground: var(--color-blue-700);
   --input: #D5D4D1;
-  --muted: #F5F3F0;
-  --muted-foreground: #73716F;
+  --muted: #F4F4F3;
+  --muted-foreground: #7D7C78;
   --popover: #FFFFFF;
   --popover-foreground: var(--color-neutral-800);
   --primary: #191816;
-  --primary-foreground: #FBFAF7;
-  --ring: #DF6C32;
+  --primary-foreground: #FFFFFF;
+  --ring: rgba(55, 53, 47, 0.25);
   --secondary: --alpha(var(--color-black) / 4%);
   --secondary-foreground: var(--color-neutral-800);
   --success: #05893E;
@@ -38,14 +38,19 @@
   --code-foreground: var(--foreground);
   --code-highlight: --alpha(var(--color-black) / 4%);
   --radius: 0.75rem;
-  --sidebar: var(--color-neutral-50);
+  --sidebar: #FBFBFA;
   --sidebar-accent: --alpha(var(--color-black) / 4%);
   --sidebar-accent-foreground: var(--color-neutral-800);
-  --sidebar-border: --alpha(var(--color-black) / 6%);
+  --sidebar-border: #EDEDEC;
   --sidebar-foreground: color-mix(in srgb, var(--color-neutral-800) 64%, var(--sidebar));
   --sidebar-primary: var(--color-neutral-800);
   --sidebar-primary-foreground: var(--color-neutral-50);
   --sidebar-ring: var(--color-neutral-400);
+
+  /* cichy styl */
+  --faint: #9B9A97;
+  --grid-line: #F3F3F1;
+  --now: #E5484D;
 
   /* kolory sekcji */
   --plan: #4693F1;

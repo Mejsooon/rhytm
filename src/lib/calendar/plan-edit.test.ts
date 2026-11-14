@@ -10,7 +10,7 @@ const at = (local: string) => new Date(`${local}:00+01:00`).toISOString();
 const daily: BlockSeries = {
   id: 'b1',
   title: 'Nauka',
-  color: '#123456',
+  categoryId: '11111111-1111-4111-8111-111111111111',
   note: null,
   startLocal: '2026-11-16T08:00',
   durationMin: 60,
@@ -71,7 +71,7 @@ describe('planEdit', () => {
         tempId: 'new-series',
         series: {
           title: 'Nowe',
-          color: '#123456',
+          categoryId: '11111111-1111-4111-8111-111111111111',
           note: null,
           startLocal: '2026-11-18T09:00',
           durationMin: 60,
@@ -172,7 +172,7 @@ describe('planEdit: przeniesione wystąpienie (finding 1)', () => {
   });
 
   it('all: zmiana pola nadpisanego w wyjątku czyści tylko to pole', () => {
-    const ex: BlockException = { ...movedEx, title: 'Stara', color: 'red' };
+    const ex: BlockException = { ...movedEx, title: 'Stara', categoryId: '22222222-2222-4222-8222-222222222222' };
     const plan = planEdit(mondays, '2026-11-16', 'all', { title: 'Nowa' }, [], ex);
     expect(plan.mutations).toContainEqual({ kind: 'clearExceptionFields', blockId: 'b4', occurrenceDate: '2026-11-16', fields: ['title'] });
   });

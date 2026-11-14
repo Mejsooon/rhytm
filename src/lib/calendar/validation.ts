@@ -1,7 +1,7 @@
-import { CATEGORY_COLORS } from './colors';
 import type { Recurrence } from './types';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCAL_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
 /**
@@ -14,7 +14,7 @@ export function validateBlockFields(fields: {
   title?: string;
   durationMin?: number;
   startLocal?: string;
-  color?: string;
+  categoryId?: string;
   recurrence?: Recurrence | null;
 }): { title?: string } {
   const result: { title?: string } = {};
@@ -31,8 +31,8 @@ export function validateBlockFields(fields: {
   if (fields.startLocal !== undefined && !LOCAL_RE.test(fields.startLocal)) {
     throw new Error('Nieprawidłowa data początku');
   }
-  if (fields.color !== undefined && !CATEGORY_COLORS.some((c) => c.id === fields.color)) {
-    throw new Error('Nieznany kolor bloku');
+  if (fields.categoryId !== undefined && !(typeof fields.categoryId === 'string' && UUID_RE.test(fields.categoryId))) {
+    throw new Error('Nieznana kategoria');
   }
 
   // Kształt powtarzania: dane przychodzą z klienta, więc nie ufamy typom TypeScriptu.

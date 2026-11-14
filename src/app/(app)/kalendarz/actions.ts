@@ -7,13 +7,18 @@ import { createServerClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/profile";
 import { expandOccurrences } from "@/lib/calendar/expand";
 import { executeMutations } from "@/lib/calendar/execute";
-import { rowToSeries, seriesToRow } from "@/lib/calendar/mapping";
+import { rowToException, rowToSeries, seriesToRow } from "@/lib/calendar/mapping";
 import { planDelete, planEdit, type BlockChange, type Scope } from "@/lib/calendar/plan-edit";
-import type { BlockException, BlockSeries, Occurrence } from "@/lib/calendar/types";
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
+import type { BlockSeries, Occurrence } from "@/lib/calendar/types";
 import { validateBlockFields } from "@/lib/calendar/validation";
 import type { Database } from "@/lib/db/types";
 
 export type BlockTask = Database["public"]["Tables"]["block_tasks"]["Row"];
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// Najdłuższy zakres listOccurrences: widok miesiąca to max 42 dni, reszta to zapas.
+const MAX_RANGE_DAYS = 62;
 
 // Pobiera serię po id (RLS ukrywa cudze) albo rzuca błąd.
 async function fetchSeries(blockId: string): Promise<BlockSeries> {
@@ -28,6 +33,10 @@ export async function listOccurrences(
   from: string,
   to: string,
 ): Promise<(Occurrence & { taskDone: number; taskTotal: number })[]> {
+  if (!DATE_RE.test(from) || !DATE_RE.test(to) || to < from) throw new Error("Nieprawidłowy zakres dat");
+  if (differenceInCalendarDays(parseISO(to), parseISO(from)) > MAX_RANGE_DAYS) {
+    to = format(addDays(parseISO(from), MAX_RANGE_DAYS), "yyyy-MM-dd");
+  }
   const supabase = await createServerClient();
 
   // v1: wszystkie bloki użytkownika (RLS), rozwijanie po stronie serwera.
@@ -38,19 +47,18 @@ export async function listOccurrences(
 
   const exRes = await supabase.from("block_exceptions").select("*").in("block_id", series.map((s) => s.id));
   if (exRes.error) throw new Error(`Nie udało się wczytać wyjątków: ${exRes.error.message}`);
-  const exceptions: BlockException[] = exRes.data.map((r) => ({
-    blockId: r.block_id,
-    occurrenceDate: r.occurrence_date,
-    cancelled: r.cancelled,
-    ...(r.start_local !== null && { startLocal: r.start_local }),
-    ...(r.duration_min !== null && { durationMin: r.duration_min }),
-    ...(r.title !== null && { title: r.title }),
-    ...(r.color !== null && { color: r.color }),
-    ...(r.note !== null && { note: r.note }),
-  }));
+  const exceptions = exRes.data.map(rowToException);
 
+  // Uszkodzona seria (np. zła strefa w bazie) nie może zablokować całego kalendarza: pomijamy ją i logujemy.
   const occurrences = series
-    .flatMap((s) => expandOccurrences(s, exceptions, from, to))
+    .flatMap((s) => {
+      try {
+        return expandOccurrences(s, exceptions, from, to);
+      } catch (error) {
+        console.error(`Nie udało się rozwinąć bloku ${s.id}`, error);
+        return [];
+      }
+    })
     .sort((a, b) => a.start.getTime() - b.start.getTime());
   if (occurrences.length === 0) return [];
 
@@ -81,34 +89,59 @@ export async function createBlock(input: Omit<BlockSeries, "id" | "timezone">): 
     title: input.title,
     durationMin: input.durationMin,
     startLocal: input.startLocal,
+    color: input.color,
     recurrence: input.recurrence,
   });
 
-  // Strefa czasowa pochodzi z profilu, nie z wejścia.
+  // Strefa czasowa pochodzi z profilu, nie z wejścia. Pola przepisujemy jawnie, więc `id` z klienta nie trafi do bazy.
   const profile = await ensureProfile();
   const supabase = await createServerClient();
-  const row = seriesToRow({ ...input, title, timezone: profile.timezone });
+  const row = seriesToRow({
+    title: title!,
+    color: input.color,
+    note: input.note,
+    startLocal: input.startLocal,
+    durationMin: input.durationMin,
+    recurrence: input.recurrence,
+    timezone: profile.timezone,
+  });
   const { data, error } = await supabase.from("blocks").insert(row as never).select("id").single();
   if (error) throw new Error(`Nie udało się zapisać bloku: ${error.message}`);
   return data.id;
 }
 
-// Wspólna część previewEdit i editBlock: wczytuje serię i daty z zadaniami, waliduje zmianę i planuje mutacje.
+// Wspólna część previewEdit i editBlock: wczytuje serię, wyjątek edytowanego wystąpienia i daty z zadaniami,
+// waliduje pola zmiany i planuje mutacje. Datę końca względem efektywnego startu sprawdza planEdit
+// (zna nowy start serii także wtedy, gdy zmienia się tylko start).
 async function planBlockEdit(blockId: string, occurrenceDate: string, scope: Scope, change: BlockChange) {
+  if (!DATE_RE.test(occurrenceDate)) throw new Error("Nieprawidłowa data wystąpienia");
+  if (!["this", "following", "all"].includes(scope)) throw new Error("Nieprawidłowy zakres zmiany");
   const series = await fetchSeries(blockId);
-  const recurrence = change.recurrence !== undefined ? change.recurrence : series.recurrence;
   validateBlockFields({
     title: change.title,
     durationMin: change.durationMin,
-    // until sprawdzamy względem nowej daty startu (lub obecnej, gdy nie zmieniono startu).
-    startLocal: change.startLocal ?? series.startLocal,
-    recurrence: change.recurrence !== undefined ? recurrence : undefined,
+    color: change.color,
+    recurrence: change.recurrence,
   });
   const supabase = await createServerClient();
+  const exRes = await supabase
+    .from("block_exceptions")
+    .select("*")
+    .eq("block_id", blockId)
+    .eq("occurrence_date", occurrenceDate)
+    .maybeSingle();
+  if (exRes.error) throw new Error(`Nie udało się wczytać wyjątku: ${exRes.error.message}`);
   const tasksRes = await supabase.from("block_tasks").select("occurrence_date").eq("block_id", blockId);
   if (tasksRes.error) throw new Error(`Nie udało się wczytać zadań: ${tasksRes.error.message}`);
   const taskDates = [...new Set(tasksRes.data.map((t) => t.occurrence_date))];
-  return planEdit(series, occurrenceDate, scope, { ...change, ...(change.title !== undefined && { title: change.title.trim() }) }, taskDates);
+  return planEdit(
+    series,
+    occurrenceDate,
+    scope,
+    { ...change, ...(change.title !== undefined && { title: change.title.trim() }) },
+    taskDates,
+    exRes.data ? rowToException(exRes.data) : null,
+  );
 }
 
 export async function previewEdit(
@@ -127,6 +160,7 @@ export async function editBlock(blockId: string, occurrenceDate: string, scope: 
 }
 
 export async function deleteBlock(blockId: string, occurrenceDate: string, scope: Scope): Promise<void> {
+  if (!DATE_RE.test(occurrenceDate)) throw new Error("Nieprawidłowa data wystąpienia");
   const series = await fetchSeries(blockId);
   await executeMutations(await createServerClient(), planDelete(series, occurrenceDate, scope));
 }

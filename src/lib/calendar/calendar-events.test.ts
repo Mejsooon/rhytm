@@ -11,6 +11,7 @@ const occ: CalendarOccurrence = {
   color: 'green',
   note: null,
   recurring: true,
+  recurrence: { freq: 'daily' },
   taskDone: 1,
   taskTotal: 2,
 };

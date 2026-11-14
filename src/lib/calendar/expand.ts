@@ -82,6 +82,7 @@ export function expandOccurrences(
       color: ex?.color ?? series.color,
       note: ex && ex.note !== undefined ? ex.note : series.note,
       recurring: rec !== null,
+      recurrence: rec,
     });
   }
 

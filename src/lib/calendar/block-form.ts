@@ -1,4 +1,4 @@
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import type { BlockChange } from './plan-edit';
 import type { BlockSeries, Occurrence, Recurrence, Weekday } from './types';
 
@@ -51,7 +51,7 @@ export function emptyBlockForm(startLocal: string, durationMin: number): BlockFo
   };
 }
 
-/** Formularz edycji wypełniony z wystąpienia (powtarzanie nie jest edytowane z wystąpienia). */
+/** Formularz edycji wypełniony z wystąpienia; powtarzanie i data końca pochodzą z serii. */
 export function blockFormFromOccurrence(o: Occurrence, timezone: string): BlockFormValue {
   const start = toLocalString(o.start, timezone);
   const end = toLocalString(o.end, timezone);
@@ -62,9 +62,9 @@ export function blockFormFromOccurrence(o: Occurrence, timezone: string): BlockF
     date: start.slice(0, 10),
     startTime: start.slice(11, 16),
     endTime: end.slice(0, 10) === start.slice(0, 10) ? end.slice(11, 16) : '23:59',
-    repeat: 'none',
-    weekdays: [],
-    until: '',
+    repeat: o.recurrence?.freq ?? 'none',
+    weekdays: o.recurrence?.freq === 'custom' ? [...o.recurrence.byWeekday] : [],
+    until: o.recurrence?.until ?? '',
   };
 }
 
@@ -104,15 +104,27 @@ export function formToNewBlock(value: BlockFormValue): Omit<BlockSeries, 'id' | 
   };
 }
 
-/** Zmiana dla `editBlock`/`previewEdit` z formularza edycji (bez powtarzania). */
-export function formToChange(value: BlockFormValue): BlockChange {
+/**
+ * Zmiana dla `editBlock`/`previewEdit` z formularza edycji: tylko pola różne od `initial`
+ * (formularza otwartego z wystąpienia), więc np. sama zmiana nazwy nie przesuwa serii.
+ * Start idzie jako chwila (ISO): godziny w formularzu są w strefie profilu `timezone`, a serwer
+ * przelicza chwilę na czas lokalny strefy bloku. Pusty obiekt = nic się nie zmieniło.
+ */
+export function formToChange(value: BlockFormValue, initial: BlockFormValue, timezone: string): BlockChange {
   const title = value.title.trim();
   if (title === '') throw new Error('Podaj nazwę bloku');
-  return {
-    title,
-    color: value.color,
-    note: value.note.trim() === '' ? null : value.note.trim(),
-    startLocal: `${value.date}T${value.startTime}`,
-    durationMin: formDurationMin(value),
-  };
+  const note = value.note.trim() === '' ? null : value.note.trim();
+  const initialNote = initial.note.trim() === '' ? null : initial.note.trim();
+  const startLocal = `${value.date}T${value.startTime}`;
+  const durationMin = formDurationMin(value);
+  const recurrence = formToRecurrence(value);
+
+  const change: BlockChange = {};
+  if (title !== initial.title.trim()) change.title = title;
+  if (value.color !== initial.color) change.color = value.color;
+  if (note !== initialNote) change.note = note;
+  if (startLocal !== `${initial.date}T${initial.startTime}`) change.start = fromZonedTime(startLocal, timezone).toISOString();
+  if (durationMin !== formDurationMin(initial)) change.durationMin = durationMin;
+  if (JSON.stringify(recurrence) !== JSON.stringify(formToRecurrence(initial))) change.recurrence = recurrence;
+  return change;
 }

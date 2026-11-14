@@ -25,6 +25,8 @@ type ScopeDialogProps = {
   open: boolean;
   /** Dla bloku niepowtarzanego dialog jest zwykłym potwierdzeniem (bez wyboru zakresu). Rodzic montuje dialog od nowa przy każdym użyciu, więc zakres startuje od „Tylko to wydarzenie”. */
   recurring: boolean;
+  /** false: bez opcji „Tylko to wydarzenie” (np. przy zmianie powtarzania); zakres startuje wtedy od „To i następne”. */
+  allowThis?: boolean;
   onPick: (scope: Scope) => void;
   /** Liczba wystąpień z zadaniami, które znikną przy wybranym zakresie (liczy rodzic przez previewEdit). */
   droppedTaskCount: number;
@@ -42,6 +44,7 @@ type ScopeDialogProps = {
 export function ScopeDialog({
   open,
   recurring,
+  allowThis = true,
   onPick,
   droppedTaskCount,
   onCancel,
@@ -52,7 +55,7 @@ export function ScopeDialog({
   scopeHints = {},
   destructive = false,
 }: ScopeDialogProps) {
-  const [scope, setScope] = useState<Scope>("this");
+  const [scope, setScope] = useState<Scope>(allowThis ? "this" : "following");
 
   return (
     <AlertDialog
@@ -78,7 +81,7 @@ export function ScopeDialog({
               }}
               className="gap-2"
             >
-              {SCOPES.map((option) => (
+              {SCOPES.filter((option) => allowThis || option.value !== "this").map((option) => (
                 <label
                   key={option.value}
                   className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 has-data-checked:border-foreground has-data-checked:bg-background"

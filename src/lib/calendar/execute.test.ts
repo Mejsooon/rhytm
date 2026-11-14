@@ -104,6 +104,57 @@ describe('executeMutations', () => {
     expect(ops[3]).toMatchObject({ table: 'blocks', op: 'delete', filters: [['id', 'eq', 'b2']] });
   });
 
+  it('shiftChildren w przód: daty od najpóźniejszej (bez kolizji klucza wyjątków), tempId podmieniony', async () => {
+    const { client, ops } = makeClient((op) => {
+      if (op.op === 'insert') return { data: { id: 'real-1' } };
+      if (op.op === 'select' && op.table === 'block_exceptions') return { data: [{ occurrence_date: '2026-11-16' }] };
+      if (op.op === 'select' && op.table === 'block_tasks') return { data: [{ occurrence_date: '2026-11-17' }, { occurrence_date: '2026-11-16' }] };
+      return { data: null };
+    });
+    await executeMutations(client, [
+      { kind: 'insertSeries', tempId: 'new-series', series },
+      { kind: 'shiftChildren', blockId: 'new-series', days: 1 },
+    ]);
+    const selects = ops.filter((o) => o.op === 'select');
+    expect(selects.map((o) => [o.table, o.filters])).toEqual([
+      ['block_exceptions', [['block_id', 'eq', 'real-1']]],
+      ['block_tasks', [['block_id', 'eq', 'real-1']]],
+    ]);
+    // 17.11 -> 18.11 musi pójść przed 16.11 -> 17.11.
+    expect(ops.filter((o) => o.op === 'update').map((o) => [o.table, o.values, o.filters])).toEqual([
+      ['block_exceptions', { occurrence_date: '2026-11-18' }, [['block_id', 'eq', 'real-1'], ['occurrence_date', 'eq', '2026-11-17']]],
+      ['block_tasks', { occurrence_date: '2026-11-18' }, [['block_id', 'eq', 'real-1'], ['occurrence_date', 'eq', '2026-11-17']]],
+      ['block_exceptions', { occurrence_date: '2026-11-17' }, [['block_id', 'eq', 'real-1'], ['occurrence_date', 'eq', '2026-11-16']]],
+      ['block_tasks', { occurrence_date: '2026-11-17' }, [['block_id', 'eq', 'real-1'], ['occurrence_date', 'eq', '2026-11-16']]],
+    ]);
+  });
+
+  it('shiftChildren w tył: daty od najwcześniejszej', async () => {
+    const { client, ops } = makeClient((op) =>
+      op.op === 'select' ? { data: [{ occurrence_date: '2026-11-18' }, { occurrence_date: '2026-11-16' }] } : { data: null },
+    );
+    await executeMutations(client, [{ kind: 'shiftChildren', blockId: 'b1', days: -2 }]);
+    expect(ops.filter((o) => o.op === 'update' && o.table === 'block_tasks').map((o) => [o.values, o.filters[1]])).toEqual([
+      [{ occurrence_date: '2026-11-14' }, ['occurrence_date', 'eq', '2026-11-16']],
+      [{ occurrence_date: '2026-11-16' }, ['occurrence_date', 'eq', '2026-11-18']],
+    ]);
+  });
+
+  it('clearExceptionFields ustawia wybrane kolumny wyjątku na null', async () => {
+    const { client, ops } = makeClient();
+    await executeMutations(client, [
+      { kind: 'clearExceptionFields', blockId: 'b1', occurrenceDate: '2026-11-17', fields: ['startLocal', 'durationMin', 'note'] },
+    ]);
+    expect(ops).toEqual([
+      {
+        table: 'block_exceptions',
+        op: 'update',
+        values: { start_local: null, duration_min: null, note: null },
+        filters: [['block_id', 'eq', 'b1'], ['occurrence_date', 'eq', '2026-11-17']],
+      },
+    ]);
+  });
+
   it('rzuca błąd z polskim prefiksem i przerywa kolejne mutacje', async () => {
     const { client, ops } = makeClient((op) => (op.table === 'blocks' ? { error: { message: 'boom' } } : { data: null }));
     await expect(

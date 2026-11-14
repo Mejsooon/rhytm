@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rowToSeries, seriesToRow } from './mapping';
+import { rowToException, rowToSeries, seriesToRow } from './mapping';
 
 const base = {
   id: 'b1',
@@ -38,5 +38,16 @@ describe('mapping wierszy bloków', () => {
   it('seriesToRow bez id nie dodaje klucza id (insert generuje id)', () => {
     const noId = { ...rowToSeries({ ...base, recurrence: null }), id: undefined };
     expect('id' in seriesToRow(noId)).toBe(false);
+  });
+});
+
+describe('rowToException', () => {
+  it('pomija kolumny null (pole nienadpisane)', () => {
+    expect(
+      rowToException({
+        block_id: 'b1', occurrence_date: '2026-11-16', cancelled: false,
+        start_local: '2026-11-18T12:00:00', duration_min: null, title: null, color: 'red', note: null,
+      }),
+    ).toEqual({ blockId: 'b1', occurrenceDate: '2026-11-16', cancelled: false, startLocal: '2026-11-18T12:00:00', color: 'red' });
   });
 });

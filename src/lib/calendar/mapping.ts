@@ -1,8 +1,9 @@
 import type { Database, Json } from '@/lib/db/types';
-import type { BlockSeries, Recurrence } from './types';
+import type { BlockException, BlockSeries, Recurrence } from './types';
 
 type BlockRow = Database['public']['Tables']['blocks']['Row'];
 type BlockInsert = Database['public']['Tables']['blocks']['Insert'];
+type ExceptionRow = Database['public']['Tables']['block_exceptions']['Row'];
 
 /** Wiersz z tabeli `blocks` (kolumny snake_case) → typ domenowy serii. */
 export function rowToSeries(
@@ -36,4 +37,18 @@ export function seriesToRow(series: Partial<BlockSeries>): Partial<BlockInsert> 
   if (series.timezone !== undefined) row.timezone = series.timezone;
   if (series.recurrence !== undefined) row.recurrence = series.recurrence as unknown as Json | null;
   return row;
+}
+
+/** Wiersz z tabeli `block_exceptions` → wyjątek. Kolumna null = pole nie jest nadpisane (brak klucza). */
+export function rowToException(row: ExceptionRow): BlockException {
+  return {
+    blockId: row.block_id,
+    occurrenceDate: row.occurrence_date,
+    cancelled: row.cancelled,
+    ...(row.start_local !== null && { startLocal: row.start_local }),
+    ...(row.duration_min !== null && { durationMin: row.duration_min }),
+    ...(row.title !== null && { title: row.title }),
+    ...(row.color !== null && { color: row.color }),
+    ...(row.note !== null && { note: row.note }),
+  };
 }

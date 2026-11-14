@@ -27,6 +27,7 @@ describe('occurrenceHeading', () => {
     color: 'green',
     note: null,
     recurring: true,
+    recurrence: { freq: 'daily' },
     taskDone: 0,
     taskTotal: 0,
   };

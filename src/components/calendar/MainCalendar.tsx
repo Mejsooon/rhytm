@@ -123,11 +123,11 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
       void saveEdit(occurrence, "all", change, options.revert);
       return;
     }
+    // Godziny w opisie w strefie profilu (change.start to chwila ISO).
     const oldStart = toLocalString(occurrence.start, timezone);
-    const newStart = change.startLocal ?? oldStart;
+    const newStart = change.start !== undefined ? toLocalString(new Date(change.start), timezone) : oldStart;
     const timeOnly = oldStart.slice(0, 10) === newStart.slice(0, 10) && oldStart !== newStart;
-    setDroppedTaskCount(0);
-    setPending({
+    const next: PendingScope = {
       kind: "edit",
       occurrence,
       change,
@@ -136,10 +136,15 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
         ? `„${occurrence.title}” z ${oldStart.slice(11)} na ${newStart.slice(11)}. Które wystąpienia zmienić?`
         : `„${occurrence.title}”. Które wystąpienia zmienić?`,
       revert: options.revert,
-    });
+    };
+    setDroppedTaskCount(0);
+    setPending(next);
+    // Zmiana powtarzania nie ma opcji „tylko to”: dialog startuje od „to i następne”, więc od razu liczymy ostrzeżenie.
+    if (change.recurrence !== undefined) void previewDropped(next, "following");
   }
 
-  // Przeciągnięcie albo zmiana długości bloku w kalendarzu.
+  // Przeciągnięcie albo zmiana długości bloku w kalendarzu. Wysyłamy chwilę startu (ISO) i długość;
+  // serwer przelicza chwilę na czas lokalny strefy bloku.
   function handleEventChange(info: EventDropInfo | EventResizeDoneInfo) {
     const occurrence: CalendarOccurrence = info.event.extendedProps.occurrence;
     const start = info.event.start;
@@ -147,7 +152,7 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
     const end = info.event.end ?? new Date(start.getTime() + (occurrence.end.getTime() - occurrence.start.getTime()));
     requestEdit(
       occurrence,
-      { startLocal: toLocalString(start, timezone), durationMin: Math.round((end.getTime() - start.getTime()) / 60_000) },
+      { start: start.toISOString(), durationMin: Math.round((end.getTime() - start.getTime()) / 60_000) },
       { title: "Przesunąć powtarzany blok?", revert: info.revert },
     );
   }
@@ -183,30 +188,37 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
       refetch();
       return;
     }
-    const change = formToChange(value);
+    // Tylko zmienione pola (np. sama zmiana nazwy nie przesuwa serii); brak zmian = po prostu zamknięcie.
+    const change = formToChange(value, form.initial, timezone);
     const { occurrence } = form;
     setForm(null);
+    if (Object.keys(change).length === 0) return;
     requestEdit(occurrence, change, { title: "Zmienić powtarzany blok?" });
   }
 
-  // Wybór zakresu: rodzic liczy ostrzeżenie przez previewEdit (bez zapisu), `this` nigdy nie usuwa zadań.
-  async function handleScopeChange(scope: Scope) {
-    if (pending?.kind !== "edit" || scope === "this") {
+  // Ostrzeżenie o zadaniach, które znikną: previewEdit (bez zapisu). Licznik odrzuca spóźnione odpowiedzi.
+  async function previewDropped(target: PendingScope, scope: Scope) {
+    const callId = ++previewCounter.current;
+    // `this` nigdy nie usuwa zadań.
+    if (target.kind !== "edit" || scope === "this") {
       setDroppedTaskCount(0);
       return;
     }
-    const callId = ++previewCounter.current;
     try {
       const { droppedTaskDates } = await previewEdit(
-        pending.occurrence.blockId,
-        pending.occurrence.occurrenceDate,
+        target.occurrence.blockId,
+        target.occurrence.occurrenceDate,
         scope,
-        pending.change,
+        target.change,
       );
       if (callId === previewCounter.current) setDroppedTaskCount(droppedTaskDates.length);
     } catch {
       if (callId === previewCounter.current) setDroppedTaskCount(0);
     }
+  }
+
+  function handleScopeChange(scope: Scope) {
+    if (pending) void previewDropped(pending, scope);
   }
 
   async function handleScopePick(scope: Scope) {
@@ -426,6 +438,7 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
         <ScopeDialog
           open
           recurring={pending.occurrence.recurring}
+          allowThis={!(pending.kind === "edit" && pending.change.recurrence !== undefined)}
           droppedTaskCount={droppedTaskCount}
           scopeHints={scopeHints}
           onScopeChange={handleScopeChange}

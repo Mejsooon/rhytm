@@ -36,4 +36,5 @@ export type Occurrence = {
   color: string;
   note: string | null;
   recurring: boolean;
+  recurrence: Recurrence | null; // powtarzanie serii (do wypełnienia formularza edycji)
 };

@@ -1,12 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { addDays, format, parseISO } from 'date-fns';
 import type { Database } from '@/lib/db/types';
 import { seriesToRow } from './mapping';
 import type { Mutation } from './plan-edit';
 
 /**
  * Wykonuje mutacje z `planEdit` / `planDelete` po kolei, jedną pętlą.
- * - `tempId` z `insertSeries` jest podmieniany na prawdziwe id nowej serii
- *   w kolejnych mutacjach (`moveChildren.toTempId`, `deleteTasksOn.blockId`).
+ * - `tempId` z `insertSeries` jest podmieniany na prawdziwe id nowej serii w kolejnych mutacjach
+ *   (`moveChildren.toTempId`, `shiftChildren.blockId`, `clearExceptionFields.blockId`, `deleteTasksOn.blockId`).
  * - `upsertException` scala nowe pola z istniejącym wyjątkiem tej samej pary
  *   (block_id, occurrence_date), żeby kolejna edycja jednego wystąpienia nie kasowała poprzedniej.
  * Pierwszy błąd Supabase przerywa wykonanie (rzuca Error z polskim prefiksem).
@@ -76,6 +77,60 @@ export async function executeMutations(supabase: SupabaseClient<Database>, mutat
           .eq('block_id', m.fromId)
           .gte('occurrence_date', m.fromDate);
         error = tasks.error;
+        break;
+      }
+      case 'shiftChildren': {
+        // Przesuwa occurrence_date wyjątków i zadań serii o `days` dni. PostgREST nie umie `date + n`,
+        // więc idziemy po datach: przy przesunięciu w przód od najpóźniejszej, w tył od najwcześniejszej.
+        // Dzięki temu data docelowa jest już wolna (klucz (block_id, occurrence_date) wyjątków się nie zderza),
+        // a żadne zadanie nie przesuwa się dwa razy. Przerwanie w połowie niczego nie usuwa.
+        const id = realIds.get(m.blockId) ?? m.blockId;
+        const exDates = await supabase.from('block_exceptions').select('occurrence_date').eq('block_id', id);
+        if (exDates.error) {
+          error = exDates.error;
+          break;
+        }
+        const taskDates = await supabase.from('block_tasks').select('occurrence_date').eq('block_id', id);
+        if (taskDates.error) {
+          error = taskDates.error;
+          break;
+        }
+        const dates = [...new Set([...exDates.data, ...taskDates.data].map((r) => r.occurrence_date))].sort();
+        if (m.days > 0) dates.reverse();
+        for (const date of dates) {
+          const to = format(addDays(parseISO(date), m.days), 'yyyy-MM-dd');
+          const ex = await supabase
+            .from('block_exceptions')
+            .update({ occurrence_date: to })
+            .eq('block_id', id)
+            .eq('occurrence_date', date);
+          if (ex.error) {
+            error = ex.error;
+            break;
+          }
+          const tasks = await supabase
+            .from('block_tasks')
+            .update({ occurrence_date: to })
+            .eq('block_id', id)
+            .eq('occurrence_date', date);
+          if (tasks.error) {
+            error = tasks.error;
+            break;
+          }
+        }
+        break;
+      }
+      case 'clearExceptionFields': {
+        // Wybrane pola wyjątku wracają do wartości z serii (null = brak nadpisania).
+        const columns = { startLocal: 'start_local', durationMin: 'duration_min', title: 'title', color: 'color', note: 'note' } as const;
+        const patch: Database['public']['Tables']['block_exceptions']['Update'] = {};
+        for (const field of m.fields) patch[columns[field]] = null;
+        const res = await supabase
+          .from('block_exceptions')
+          .update(patch)
+          .eq('block_id', realIds.get(m.blockId) ?? m.blockId)
+          .eq('occurrence_date', m.occurrenceDate);
+        error = res.error;
         break;
       }
       case 'deleteChildrenFrom': {

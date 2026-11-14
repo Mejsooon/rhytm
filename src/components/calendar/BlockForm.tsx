@@ -155,69 +155,69 @@ export function BlockForm({ open, mode, initialValue, onSubmit, onDelete, onOpen
               </div>
             </fieldset>
 
-            {mode === "create" && (
-              <fieldset className="flex flex-col gap-2.5">
-                <legend className="mb-2 text-sm font-medium">Powtarzanie</legend>
-                <SegmentedControl aria-label="Powtarzanie" className="w-full">
-                  {REPEAT_OPTIONS.map((option) => (
-                    <SegmentedControlItem
-                      key={option.value}
-                      className="flex-1"
-                      aria-pressed={value.repeat === option.value}
-                      data-checked={value.repeat === option.value ? "" : undefined}
-                      onClick={() => setValue({ ...value, repeat: option.value })}
-                    >
-                      {option.label}
-                    </SegmentedControlItem>
-                  ))}
-                </SegmentedControl>
-
-                {value.repeat === "custom" && (
-                  <ToggleGroup
-                    multiple
-                    variant="outline"
-                    aria-label="Dni tygodnia"
-                    className="flex-wrap gap-1.5"
-                    value={value.weekdays.map(String)}
-                    onValueChange={(days: string[]) =>
-                      setValue({ ...value, weekdays: days.map(Number).sort() as Weekday[] })
-                    }
+            {/* Powtarzanie także przy edycji: zmiana zapisuje się tylko dla „To i następne” albo „Wszystkie”. */}
+            <fieldset className="flex flex-col gap-2.5">
+              <legend className="mb-2 text-sm font-medium">Powtarzanie</legend>
+              <SegmentedControl aria-label="Powtarzanie" className="w-full">
+                {REPEAT_OPTIONS.map((option) => (
+                  <SegmentedControlItem
+                    key={option.value}
+                    className="flex-1"
+                    aria-pressed={value.repeat === option.value}
+                    data-checked={value.repeat === option.value ? "" : undefined}
+                    onClick={() => setValue({ ...value, repeat: option.value })}
                   >
-                    {WEEKDAYS.map((day) => (
-                      <ToggleGroupItem
-                        key={day.value}
-                        value={String(day.value)}
-                        aria-label={day.full}
-                        className="w-10 data-pressed:bg-primary data-pressed:text-primary-foreground"
-                      >
-                        {day.short}
-                      </ToggleGroupItem>
-                    ))}
-                  </ToggleGroup>
-                )}
+                    {option.label}
+                  </SegmentedControlItem>
+                ))}
+              </SegmentedControl>
 
-                {value.repeat !== "none" && (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="flex min-h-9 items-center gap-2.5 text-sm">
-                      <Checkbox checked={hasEnd} onCheckedChange={(checked) => setHasEnd(checked === true)} />
-                      Kończy się
-                      {!hasEnd && <span className="text-muted-foreground">— bez daty końca</span>}
-                    </label>
-                    {hasEnd && (
-                      <Input
-                        type="date"
-                        aria-label="Data końca"
-                        required
-                        min={value.date}
-                        className="w-auto"
-                        value={value.until}
-                        onChange={(event) => setValue({ ...value, until: event.target.value })}
-                      />
-                    )}
-                  </div>
-                )}
-              </fieldset>
-            )}
+              {value.repeat === "custom" && (
+                <ToggleGroup
+                  multiple
+                  variant="outline"
+                  aria-label="Dni tygodnia"
+                  className="flex-wrap gap-1.5"
+                  value={value.weekdays.map(String)}
+                  onValueChange={(days: string[]) =>
+                    setValue({ ...value, weekdays: days.map(Number).sort() as Weekday[] })
+                  }
+                >
+                  {WEEKDAYS.map((day) => (
+                    <ToggleGroupItem
+                      key={day.value}
+                      value={String(day.value)}
+                      aria-label={day.full}
+                      className="w-10 data-pressed:bg-primary data-pressed:text-primary-foreground"
+                    >
+                      {day.short}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              )}
+
+              {value.repeat !== "none" && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="flex min-h-9 items-center gap-2.5 text-sm">
+                    <Checkbox checked={hasEnd} onCheckedChange={(checked) => setHasEnd(checked === true)} />
+                    Kończy się
+                    {!hasEnd && <span className="text-muted-foreground">— bez daty końca</span>}
+                  </label>
+                  {hasEnd && (
+                    <Input
+                      type="date"
+                      aria-label="Data końca"
+                      required
+                      // Przy edycji efektywny start zależy od zakresu (np. „Wszystkie” = start serii), więc sprawdza go serwer.
+                      min={mode === "create" ? value.date : undefined}
+                      className="w-auto"
+                      value={value.until}
+                      onChange={(event) => setValue({ ...value, until: event.target.value })}
+                    />
+                  )}
+                </div>
+              )}
+            </fieldset>
 
             <Field>
               <FieldLabel>

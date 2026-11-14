@@ -16,7 +16,7 @@ type CategoryListProps = {
 
 export function CategoryList({ categories, counts, onToggle, onAdd, onEdit }: CategoryListProps) {
   return (
-    <div className="flex flex-col gap-px">
+    <div role="group" aria-label="Kategorie" className="flex flex-col gap-px">
       <span className="px-2.5 pb-1.5 text-[11px] font-medium tracking-[0.04em] text-[#9B9A97] uppercase">
         Kategorie
       </span>

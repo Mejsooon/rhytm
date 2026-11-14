@@ -89,7 +89,8 @@ test("kategoria: nowa kategoria w menu, blok w niej, ukrywanie i pokazywanie kro
   await signIn(page);
 
   // Kategorii nie da się usunąć w tym etapie, więc przy ponownym przebiegu używamy już istniejącej.
-  const menuItem = page.getByRole("button", { name: new RegExp(`^${categoryName}\\b`) });
+  // Tylko pozycja w menu bocznym (grupa „Kategorie”); zakładka o tej samej nazwie jest w grupie „Filtr kategorii”.
+  const menuItem = page.getByRole("group", { name: "Kategorie", exact: true }).getByRole("button", { name: new RegExp(`^${categoryName}\\b`) });
   if ((await menuItem.count()) === 0) {
     await page.getByRole("button", { name: "Dodaj kategorię" }).click();
     const categoryDialog = page.getByRole("dialog");

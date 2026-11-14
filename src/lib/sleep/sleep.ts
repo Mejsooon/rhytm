@@ -5,6 +5,11 @@ import type { HeatRange } from '../habits/heatmap';
 
 export type SleepLog = { date: string; sleptAt: string; wokeAt: string; feeling: number; note: string | null };
 
+// Postgres `time` columns arrive from supabase-js as 'HH:mm:ss'; SleepLog uses 'HH:mm'.
+export function rowToSleepLog(row: { date: string; slept_at: string; woke_at: string; feeling: number; note: string | null }): SleepLog {
+  return { date: row.date, sleptAt: row.slept_at.slice(0, 5), wokeAt: row.woke_at.slice(0, 5), feeling: row.feeling, note: row.note };
+}
+
 export type SleepBar = {
   key: string;
   label: string;

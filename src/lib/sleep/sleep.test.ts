@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMinutes, sleepBars, sleepMinutes, sleepStats, validateSleepInput } from './sleep';
+import { formatMinutes, rowToSleepLog, sleepBars, sleepMinutes, sleepStats, validateSleepInput } from './sleep';
 import type { SleepLog } from './sleep';
 
 const TZ = 'Europe/Warsaw';
@@ -172,5 +172,13 @@ describe('sleepStats', () => {
     expect(stats.avgMinutes).toBe(440);
     expect(stats.avgBedtime).toBe('23:00');
     expect(stats.avgFeeling).toBe(3.3);
+  });
+});
+
+describe('rowToSleepLog', () => {
+  it('trims Postgres time values from HH:mm:ss to HH:mm', () => {
+    const row = { user_id: 'u', date: '2026-11-18', slept_at: '23:15:00', woke_at: '07:00:00', feeling: 4, note: null };
+
+    expect(rowToSleepLog(row)).toEqual({ date: '2026-11-18', sleptAt: '23:15', wokeAt: '07:00', feeling: 4, note: null });
   });
 });

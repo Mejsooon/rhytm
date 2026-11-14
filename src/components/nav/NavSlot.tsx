@@ -9,9 +9,8 @@ export function NavSlot({ children }: { children: ReactNode }) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    const el = document.getElementById("rh-nav-slot");
-    // Poniżej md pasek jest ukryty (display: none), więc nie ma po co renderować.
-    setTarget(el && el.offsetParent !== null ? el : null);
+    // Poniżej md pasek jest ukryty przez CSS, więc wstawiona treść też jest ukryta.
+    setTarget(document.getElementById("rh-nav-slot"));
     return () => setTarget(null);
   }, []);
 

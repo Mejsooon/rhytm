@@ -60,6 +60,7 @@ async function Today() {
 
   return (
     <TodayView
+      key={today}
       greeting={user?.firstName ? `Dzień dobry, ${user.firstName}` : "Dzień dobry"}
       heading={`${weekdayAndDate.charAt(0).toUpperCase()}${weekdayAndDate.slice(1)}`}
       today={today}

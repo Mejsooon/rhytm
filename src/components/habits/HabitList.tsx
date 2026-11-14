@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CircleCheckIcon, PlusIcon } from "lucide-react";
 import { archiveHabit, createHabit, setHabitCheck, updateHabit } from "@/app/(app)/nawyki/habit-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToastProvider, toastManager } from "@/components/ui/toast";
 import { QUIET_BUTTON_DARK } from "@/components/calendar/quiet-classes";
+import { todayIn } from "@/lib/dates";
 import { dayScore, scheduleLabel } from "@/lib/habits/schedule";
 import { fromDTO, type HabitHistory, type HabitHistoryDTO } from "@/lib/habits/types";
 import { dayRows, dayTitle } from "@/lib/habits/view";
@@ -47,10 +49,28 @@ function showError(title: string, description?: string) {
  * i szuflada szczegółów, pod nimi heatmapa nawyków i sekcja „Sen” (wpis oglądanego dnia + wykres). Odhaczenia i archiwizacja są optymistyczne (przy błędzie cofnięcie + toast).
  */
 export function HabitList({ initialHabits, date, today, initialSleepLogs, timezone, sleepGoalMin }: HabitListProps) {
+  const router = useRouter();
   const [habits, setHabits] = useState(() => initialHabits.map(fromDTO));
   const [sleepLogs, setSleepLogs] = useState(initialSleepLogs);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+
+  // Karta otwarta przez noc albo wznowiona PWA: gdy dzień się zmienił, odświeżamy dane z serwera.
+  // Strona montuje listę z `key` = oglądany dzień, więc po odświeżeniu stan startuje od nowa.
+  // Dotyczy tylko oglądania dzisiejszego dnia; starszy dzień się nie zmienia.
+  const viewingToday = date === today;
+  useEffect(() => {
+    if (!viewingToday) return;
+    function refreshIfDayChanged() {
+      if (document.visibilityState === "visible" && todayIn(timezone, new Date()) !== today) router.refresh();
+    }
+    document.addEventListener("visibilitychange", refreshIfDayChanged);
+    window.addEventListener("focus", refreshIfDayChanged);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshIfDayChanged);
+      window.removeEventListener("focus", refreshIfDayChanged);
+    };
+  }, [viewingToday, today, timezone, router]);
 
   const rows = dayRows(habits, date, today);
   const score = dayScore(habits, date);

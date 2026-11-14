@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toggleTask, type BlockTask } from "@/app/(app)/kalendarz/actions";
 import { setHabitCheck } from "@/app/(app)/nawyki/habit-actions";
 import { ToastProvider, toastManager } from "@/components/ui/toast";
+import { todayIn } from "@/lib/dates";
 import { dayScore } from "@/lib/habits/schedule";
 import { fromDTO, type HabitHistory, type HabitHistoryDTO } from "@/lib/habits/types";
 import type { SleepLog } from "@/lib/sleep/sleep";
@@ -44,8 +46,23 @@ export function TodayView({
   initialHabits,
   sleepLogs,
 }: TodayViewProps) {
+  const router = useRouter();
   const [blocks, setBlocks] = useState(initialBlocks);
   const [habits, setHabits] = useState(() => initialHabits.map(fromDTO));
+
+  // Karta otwarta przez noc albo wznowiona PWA: gdy dzień się zmienił, odświeżamy dane z serwera.
+  // Strona montuje widok z `key` = dzień, więc po odświeżeniu stan startuje od nowa.
+  useEffect(() => {
+    function refreshIfDayChanged() {
+      if (document.visibilityState === "visible" && todayIn(timezone, new Date()) !== today) router.refresh();
+    }
+    document.addEventListener("visibilitychange", refreshIfDayChanged);
+    window.addEventListener("focus", refreshIfDayChanged);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshIfDayChanged);
+      window.removeEventListener("focus", refreshIfDayChanged);
+    };
+  }, [today, timezone, router]);
 
   const allTasks = blocks.flatMap((block) => block.tasks);
   const tasksDone = allTasks.filter((task) => task.done).length;

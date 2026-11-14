@@ -18,7 +18,7 @@ const LEVEL_COLORS = {
 const LEGEND_COLORS = [LEVEL_COLORS.zero, LEVEL_COLORS[1], LEVEL_COLORS[2], LEVEL_COLORS[3], LEVEL_COLORS[4]];
 
 const TITLES: Record<HeatRange, string> = {
-  month: "Ostatni miesiąc",
+  month: "Ten miesiąc",
   quarter: "Ostatnie 3 miesiące",
   half: "Ostatnie pół roku",
   year: "Ostatni rok",

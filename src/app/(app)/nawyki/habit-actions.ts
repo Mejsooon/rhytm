@@ -4,6 +4,7 @@
 // Dzień „dziś” liczymy w strefie z profilu. Akcje zwracają ActionResult: błędy oczekiwane (walidacja,
 // reguły odhaczania, nieudany zapis) jako { ok: false, error } z polskim komunikatem, bo Next.js
 // w produkcji ukrywa komunikaty rzuconych błędów. Brak sesji i błędy nieoczekiwane nadal są rzucane.
+import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/profile";
 import { todayIn } from "@/lib/dates";
@@ -53,6 +54,8 @@ export async function createHabit(input: HabitInput): Promise<ActionResult<Habit
       throw dbFailure("Nie udało się zapisać harmonogramu nawyku", version.error);
     }
 
+    revalidatePath("/dzis");
+    revalidatePath("/nawyki");
     return toDTO({
       id: habit.data.id,
       name,
@@ -102,6 +105,8 @@ export async function updateHabit(id: string, input: HabitInput): Promise<Action
       if (error) throw dbFailure("Nie udało się zapisać harmonogramu nawyku", error);
     }
 
+    revalidatePath("/dzis");
+    revalidatePath("/nawyki");
     const updated = await loadHabits(today, today, id);
     return toDTO(updated.habits[0]);
   });
@@ -115,6 +120,8 @@ export async function archiveHabit(id: string): Promise<ActionResult<null>> {
     const supabase = await createServerClient();
     const { error } = await supabase.from("habits").update({ archived_at: today }).eq("id", id).is("archived_at", null);
     if (error) throw dbFailure("Nie udało się zarchiwizować nawyku", error);
+    revalidatePath("/dzis");
+    revalidatePath("/nawyki");
     return null;
   });
 }
@@ -138,6 +145,8 @@ export async function setHabitCheck(habitId: string, date: string, done: boolean
       const { error } = await supabase.from("habit_checks").delete().eq("habit_id", habitId).eq("date", date);
       if (error) throw dbFailure("Nie udało się cofnąć odhaczenia", error);
     }
+    revalidatePath("/dzis");
+    revalidatePath("/nawyki");
     return null;
   });
 }

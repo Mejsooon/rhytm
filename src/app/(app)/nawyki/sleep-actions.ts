@@ -5,6 +5,7 @@
 // Akcje zwracają ActionResult: błędy oczekiwane (walidacja, nieudany zapis) jako { ok: false, error },
 // bo Next.js w produkcji ukrywa komunikaty rzuconych błędów. Brak sesji i błędy nieoczekiwane są rzucane.
 import { asResult, expected, ExpectedError, type ActionResult } from "@/lib/action-result";
+import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/profile";
 import { todayIn } from "@/lib/dates";
@@ -51,6 +52,8 @@ export async function saveSleepLog(input: {
       { onConflict: "user_id,date" },
     );
     if (error) throw dbFailure("Nie udało się zapisać snu", error);
+    revalidatePath("/dzis");
+    revalidatePath("/nawyki");
     return log;
   });
 }
@@ -62,6 +65,8 @@ export async function deleteSleepLog(date: string): Promise<ActionResult<null>> 
     const supabase = await createServerClient();
     const { error } = await supabase.from("sleep_logs").delete().eq("date", date);
     if (error) throw dbFailure("Nie udało się usunąć snu", error);
+    revalidatePath("/dzis");
+    revalidatePath("/nawyki");
     return null;
   });
 }

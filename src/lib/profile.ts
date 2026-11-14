@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { DEFAULT_CATEGORIES } from "@/lib/categories/categories";
@@ -20,7 +21,7 @@ export async function ensureCategories(): Promise<void> {
 
 // Zakłada wiersz profilu, jeśli go nie ma (idempotentnie), i zwraca aktualny profil bieżącego użytkownika.
 // Wywołują ją layout aplikacji i getProfile, więc odczyt nigdy nie trafia na brakujący wiersz.
-export async function ensureProfile() {
+export const ensureProfile = cache(async () => {
   // Odczyt sesji najpierw: to on czyni dane dynamicznymi (bez tego build próbowałby je wyrenderować statycznie).
   const { userId } = await auth();
   const supabase = await createServerClient();
@@ -32,4 +33,4 @@ export async function ensureProfile() {
   const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId!).single();
   if (error) throw new Error(`ensureProfile: ${error.message}`);
   return data;
-}
+});

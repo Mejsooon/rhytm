@@ -77,8 +77,8 @@ function HabitForm({ mode, initial, today, onSubmit, onCancel }: HabitFormProps)
   const explanation = {
     daily: "Nawyk jest zaplanowany każdego dnia i liczy się do dziennego wyniku na heatmapie.",
     days: `Liczy się tylko w zaznaczone dni (${weekdays.length} w tygodniu). W pozostałe dni nie obniża wyniku.`,
-    weekly: `Cel tygodniowy: odhacz ${timesPerWeek} razy w dowolne dni. Na liście zobaczysz postęp, np. „1 z ${timesPerWeek} w tym tyg.”.`,
-    none: "Bez planu: odhaczasz, kiedy chcesz. Nie wlicza się do dziennego wyniku, ale widać go w historii.",
+    weekly: `Cel tygodniowy: odhacz ${timesPerWeek} razy w dowolne dni. Na liście zobaczysz postęp, np. „1 z ${timesPerWeek} w tym tyg.”. Nie obniża wyniku dnia, a odhaczony go podnosi.`,
+    none: "Bez planu: odhaczasz, kiedy chcesz. Nie obniża wyniku dnia, a odhaczony go podnosi.",
   }[type];
 
   function toggleWeekday(weekday: number) {

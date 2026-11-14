@@ -8,6 +8,7 @@ import { loadHabits } from "@/lib/habits/load";
 import { assertValidDate } from "@/lib/habits/rules";
 import { toDTO } from "@/lib/habits/types";
 import { ensureProfile } from "@/lib/profile";
+import { listSleepLogs } from "./sleep-actions";
 
 const HISTORY_WEEKS = 53;
 
@@ -35,8 +36,30 @@ async function Habits({ searchParams }: { searchParams: PageProps<"/nawyki">["se
   // Rok wstecz od oglądanego dnia: nawyki zarchiwizowane w tym czasie też wracają (historia i heatmapa).
   const from = format(subWeeks(parseISO(date), HISTORY_WEEKS), "yyyy-MM-dd");
   const { habits } = await loadHabits(from, today);
+
+  // Sen: 53 tygodnie wstecz od dziś pokrywają każdy zakres wykresu (także 12 miesięcy kalendarzowych).
+  // Starszy oglądany dzień dociągamy osobno, żeby formularz pokazał jego wpis.
+  const sleepFrom = format(subWeeks(parseISO(today), HISTORY_WEEKS), "yyyy-MM-dd");
+  const [sleep, sleepOfDay] = await Promise.all([
+    listSleepLogs(sleepFrom, today),
+    date < sleepFrom ? listSleepLogs(date, date) : null,
+  ]);
+  if (!sleep.ok) throw new Error(sleep.error);
+  if (sleepOfDay && !sleepOfDay.ok) throw new Error(sleepOfDay.error);
+  const sleepLogs = sleepOfDay ? [...sleepOfDay.data, ...sleep.data] : sleep.data;
+
   // `key`: przejście na inny dzień montuje listę od nowa ze świeżymi danymi z serwera.
-  return <HabitList key={date} initialHabits={habits.map(toDTO)} date={date} today={today} />;
+  return (
+    <HabitList
+      key={date}
+      initialHabits={habits.map(toDTO)}
+      initialSleepLogs={sleepLogs}
+      date={date}
+      today={today}
+      timezone={profile.timezone}
+      sleepGoalMin={profile.sleep_goal_min}
+    />
+  );
 }
 
 export default function NawykiPage(props: PageProps<"/nawyki">) {

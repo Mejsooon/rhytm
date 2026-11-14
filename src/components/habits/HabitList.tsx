@@ -10,8 +10,12 @@ import { QUIET_BUTTON_DARK } from "@/components/calendar/quiet-classes";
 import { dayScore, scheduleLabel } from "@/lib/habits/schedule";
 import { fromDTO, type HabitHistory, type HabitHistoryDTO } from "@/lib/habits/types";
 import { dayRows, dayTitle } from "@/lib/habits/view";
+import type { SleepLog } from "@/lib/sleep/sleep";
+import { SleepChart } from "@/components/sleep/SleepChart";
+import { SleepForm } from "@/components/sleep/SleepForm";
 import { cn } from "@/lib/utils";
 import { DayNav } from "./DayNav";
+import { HabitHeatmap } from "./HabitHeatmap";
 import { HabitDetail } from "./HabitDetail";
 import { HabitDialog, type HabitInput } from "./HabitDialog";
 
@@ -22,6 +26,12 @@ type HabitListProps = {
   date: string;
   /** Dzisiejsza data w strefie profilu (YYYY-MM-DD). */
   today: string;
+  /** Wpisy snu z ostatnich 53 tygodni (+ wpis oglądanego dnia, jeśli starszy); dalej żyją w stanie klienta. */
+  initialSleepLogs: SleepLog[];
+  /** Strefa z profilu (długość snu przez północ i zmianę czasu). */
+  timezone: string;
+  /** Cel snu z profilu w minutach (linia celu na wykresie). */
+  sleepGoalMin: number;
 };
 
 type DialogState = { mode: "create" } | { mode: "edit"; habit: HabitHistory } | null;
@@ -34,10 +44,11 @@ function showError(title: string, description?: string) {
 
 /**
  * Strona „Nawyki i sen”: nagłówek z nawigacją dnia, lista nawyków wybranego dnia, okno nawyku
- * i szuflada szczegółów. Odhaczenia i archiwizacja są optymistyczne (przy błędzie cofnięcie + toast).
+ * i szuflada szczegółów, pod nimi heatmapa nawyków i sekcja „Sen” (wpis oglądanego dnia + wykres). Odhaczenia i archiwizacja są optymistyczne (przy błędzie cofnięcie + toast).
  */
-export function HabitList({ initialHabits, date, today }: HabitListProps) {
+export function HabitList({ initialHabits, date, today, initialSleepLogs, timezone, sleepGoalMin }: HabitListProps) {
   const [habits, setHabits] = useState(() => initialHabits.map(fromDTO));
+  const [sleepLogs, setSleepLogs] = useState(initialSleepLogs);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
 
@@ -192,7 +203,21 @@ export function HabitList({ initialHabits, date, today }: HabitListProps) {
           </section>
         )}
 
-        {/* Task 8: tu, pod listą, wchodzi heatmapa nawyków i sekcja snu (korzystają z tego samego stanu `habits`). */}
+        {/* Heatmapa liczy się z tego samego stanu `habits`, więc odhaczenie od razu zmienia kolor dnia. */}
+        {habits.length > 0 && <HabitHeatmap habits={habits} today={today} />}
+
+        <h2 className="mt-2 text-base font-semibold text-[#191816]">Sen</h2>
+        <SleepForm
+          date={date}
+          today={today}
+          timezone={timezone}
+          log={sleepLogs.find((log) => log.date === date)}
+          onSaved={(saved) =>
+            setSleepLogs((logs) => [...logs.filter((log) => log.date !== saved.date), saved])
+          }
+          onDeleted={(deleted) => setSleepLogs((logs) => logs.filter((log) => log.date !== deleted))}
+        />
+        <SleepChart logs={sleepLogs} today={today} timezone={timezone} goalMin={sleepGoalMin} />
       </div>
 
       {detailHabit && (

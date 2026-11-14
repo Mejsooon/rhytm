@@ -9,10 +9,14 @@ import { cn } from "@/lib/utils";
 
 // Zakładki główne: pełna etykieta na pasku bocznym, krótka na dolnym pasku.
 const tabs = [
-  { href: "/kalendarz", label: "Kalendarz", short: "Plan", icon: CalendarDays, color: "var(--info)" },
-  { href: "/sport", label: "Sport", short: "Sport", icon: Activity, color: "#B64E10" },
-  { href: "/nawyki", label: "Nawyki i sen", short: "Nawyki", icon: CircleCheck, color: "#05893E" },
+  { href: "/kalendarz", label: "Kalendarz", short: "Plan", icon: CalendarDays },
+  { href: "/sport", label: "Sport", short: "Sport", icon: Activity },
+  { href: "/nawyki", label: "Nawyki i sen", short: "Nawyki", icon: CircleCheck },
 ];
+
+const itemClass =
+  "flex h-8 items-center gap-2.5 rounded-md px-2.5 text-sm text-[#5F5E5B] transition-colors hover:bg-accent/60";
+const itemActiveClass = "bg-accent font-medium text-[#191816]";
 
 export function AppNav() {
   const pathname = usePathname();
@@ -21,41 +25,51 @@ export function AppNav() {
   return (
     <>
       {/* Pasek boczny od md w górę */}
-      <aside className="sticky top-0 hidden h-screen w-[232px] shrink-0 flex-col border-r border-border bg-background p-3 md:flex">
-        <div className="flex items-center gap-2.5 px-2 py-3">
-          <LogoMark size={28} />
-          <span className="font-heading text-xl font-extrabold tracking-tight">rhytm</span>
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-[18px] md:flex">
+        <div className="flex items-center gap-[9px] px-2 py-0.5">
+          <LogoMark size={20} />
+          <span className="font-heading text-[19px] font-extrabold tracking-[-0.04em]">rhytm</span>
         </div>
-        <nav aria-label="Główna nawigacja" className="mt-4 flex flex-col gap-1">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              aria-current={isActive(tab.href) ? "page" : undefined}
-              className={cn(
-                "flex h-10 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-foreground/80 transition-colors hover:bg-[#F0EEEB]/60",
-                isActive(tab.href) && "bg-[#F0EEEB] text-foreground",
-              )}
-            >
-              <tab.icon className="size-5" style={{ color: tab.color }} aria-hidden="true" />
-              {tab.label}
-            </Link>
-          ))}
+        <nav aria-label="Główna nawigacja" className="flex flex-col gap-px">
+          <span className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--faint)]">
+            Ogólne
+          </span>
+          {tabs.map((tab) => {
+            const active = isActive(tab.href);
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(itemClass, active && itemActiveClass)}
+              >
+                <tab.icon
+                  className={cn("size-4", active ? "text-[#37352F]" : "text-[#7D7C78]")}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+                {tab.label}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="mt-auto flex flex-col gap-1">
+        {/* Miejsce na sekcje wstawiane przez strony (NavSlot) */}
+        <div id="rh-nav-slot" className="flex flex-col gap-5" />
+        <div className="mt-auto flex flex-col gap-2">
           <Link
             href="/ustawienia"
             aria-current={isActive("/ustawienia") ? "page" : undefined}
-            className={cn(
-              "flex h-10 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-foreground/80 transition-colors hover:bg-[#F0EEEB]/60",
-              isActive("/ustawienia") && "bg-[#F0EEEB] text-foreground",
-            )}
+            className={cn(itemClass, isActive("/ustawienia") && itemActiveClass)}
           >
-            <Settings className="size-5 text-muted-foreground" aria-hidden="true" />
+            <Settings
+              className={cn("size-4", isActive("/ustawienia") ? "text-[#37352F]" : "text-[#7D7C78]")}
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
             Ustawienia
           </Link>
-          <div className="flex h-10 items-center px-3">
-            <UserButton />
+          <div className="flex items-center rounded-[10px] border border-sidebar-border bg-white p-2.5">
+            <UserButton showName />
           </div>
         </div>
       </aside>
@@ -63,33 +77,31 @@ export function AppNav() {
       {/* Dolny pasek poniżej md */}
       <nav
         aria-label="Główna nawigacja"
-        className="fixed inset-x-0 bottom-0 z-40 flex h-[84px] items-start justify-around border-t border-border bg-white px-2 pt-2 pb-[max(env(safe-area-inset-bottom),16px)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex h-[84px] items-start justify-around border-t border-sidebar-border bg-white px-2 pt-2 pb-[max(env(safe-area-inset-bottom),16px)] md:hidden"
       >
-        {tabs.map((tab) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            aria-current={isActive(tab.href) ? "page" : undefined}
-            className={cn(
-              "flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-[10px] text-xs font-medium text-muted-foreground",
-              isActive(tab.href) && "bg-[#F0EEEB] text-foreground",
-            )}
-          >
-            <tab.icon className="size-5" style={{ color: tab.color }} aria-hidden="true" />
-            {tab.short}
-          </Link>
-        ))}
-        <Link
-          href="/ustawienia"
-          aria-current={isActive("/ustawienia") ? "page" : undefined}
-          className={cn(
-            "flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-[10px] text-xs font-medium text-muted-foreground",
-            isActive("/ustawienia") && "bg-[#F0EEEB] text-foreground",
-          )}
-        >
-          <Settings className="size-5" aria-hidden="true" />
-          Ustawienia
-        </Link>
+        {[...tabs.map((t) => ({ href: t.href, label: t.short, icon: t.icon })), { href: "/ustawienia", label: "Ustawienia", icon: Settings }].map(
+          (item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-[10px] text-xs text-[#5F5E5B]",
+                  active && itemActiveClass,
+                )}
+              >
+                <item.icon
+                  className={cn("size-5", active ? "text-[#37352F]" : "text-[#7D7C78]")}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+                {item.label}
+              </Link>
+            );
+          },
+        )}
       </nav>
     </>
   );

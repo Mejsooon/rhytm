@@ -1,0 +1,15 @@
+# Minimalna konfiguracja zgodna z Supabase CLI. Sekcje auth / third-party
+# (integracja z Clerk) dochodzą w Task 3.
+project_id = "rhytm"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[db.migrations]
+enabled = true

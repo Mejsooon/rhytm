@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { formatInTimeZone } from "date-fns-tz";
 import { createCategory, updateCategory } from "@/app/(app)/kalendarz/category-actions";
 import { NavSlot } from "@/components/nav/NavSlot";
 import { ToastProvider, toastManager } from "@/components/ui/toast";
@@ -20,6 +19,8 @@ type CalendarWorkspaceProps = {
   timezone: string;
   /** Kategorie wczytane na serwerze; dalej żyją w stanie klienta. */
   initialCategories: Category[];
+  /** Dzisiejsza data 'YYYY-MM-DD' w strefie profilu, liczona na serwerze w czasie żądania. */
+  today: string;
 };
 
 type DialogState = { mode: "create" } | { mode: "edit"; category: Category } | null;
@@ -28,13 +29,13 @@ type DialogState = { mode: "create" } | { mode: "edit"; category: Category } | n
  * Strona kalendarza: trzyma kategorie, filtr (zakładka + ukryte kategorie) i ostatnio wczytane
  * wystąpienia. Mini kalendarz i lista kategorii trafiają do paska bocznego przez NavSlot.
  */
-export function CalendarWorkspace({ timezone, initialCategories }: CalendarWorkspaceProps) {
+export function CalendarWorkspace({ timezone, initialCategories, today }: CalendarWorkspaceProps) {
   const calendarRef = useRef<MainCalendarHandle>(null);
   const [categories, setCategories] = useState(initialCategories);
   const [tab, setTab] = useState<"all" | string>("all");
   const [occurrences, setOccurrences] = useState<CalendarOccurrence[]>([]);
   const [navigation, setNavigation] = useState<CalendarNavigation | null>(null);
-  const [miniMonth, setMiniMonth] = useState(() => formatInTimeZone(new Date(), timezone, "yyyy-MM"));
+  const [miniMonth, setMiniMonth] = useState(today.slice(0, 7));
   const [dialog, setDialog] = useState<DialogState>(null);
 
   // Ukrycie kategorii to po prostu `visible === false` w jej wierszu.
@@ -44,7 +45,6 @@ export function CalendarWorkspace({ timezone, initialCategories }: CalendarWorks
   );
   // Liczniki z wystąpień całego widocznego zakresu, przed filtrowaniem (ukryta kategoria zachowuje licznik).
   const counts = useMemo(() => categoryCounts(occurrences), [occurrences]);
-  const today = formatInTimeZone(new Date(), timezone, "yyyy-MM-dd");
 
   // Zmiana widoczności od razu w stanie; przy błędzie zapisu cofamy ją i pokazujemy toast.
   async function setVisible(id: string, visible: boolean) {

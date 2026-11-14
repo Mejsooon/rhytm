@@ -121,11 +121,16 @@ export function MainCalendar({
   const [panel, setPanel] = useState<CalendarOccurrence | null>(null);
   const [droppedTaskCount, setDroppedTaskCount] = useState(0);
   const previewCounter = useRef(0);
-  // Ostatnia odpowiedź serwera dla zakresu (klucz „from|to”) i zakres, o który pytaliśmy ostatnio.
+  // Ostatnia odpowiedź serwera dla zakresu (klucz „from|to”) i numer ostatniego wywołania `loadEvents`.
+  // Licznik, a nie klucz zakresu: dwa wczytania tego samego zakresu (np. zapis, a zaraz potem usunięcie)
+  // mają ten sam klucz, a liczy się tylko odpowiedź na ostatnie.
   const loadedRef = useRef<{ key: string; list: CalendarOccurrence[] } | null>(null);
-  const requestedKeyRef = useRef("");
+  const requestSeqRef = useRef(0);
   // Bieżące propsy dla `loadEvents`, którą FullCalendar trzyma jako stałą funkcję.
   const latestRef = useRef({ categories, filter, onOccurrencesLoaded });
+  // FullCalendar zaczyna wczytywać już w renderze, więc odpowiedź może przyjść przed zamontowaniem.
+  // Wtedy liczniki przekazuje dopiero efekt montowania (setState rodzica przed montażem React odrzuca).
+  const mountedRef = useRef(false);
 
   useImperativeHandle(ref, () => ({ gotoDate: (date) => calendarRef.current?.getApi().gotoDate(date) }), []);
 
@@ -137,6 +142,14 @@ export function MainCalendar({
 
   // Zmiana filtra albo kategorii (np. koloru): ten sam zakres przerysowuje się z pamięci, bez zapytania.
   // Przed pierwszym wczytaniem nie ma czego przerysować (wczytanie w toku i tak użyje bieżących propsów).
+  useEffect(() => {
+    mountedRef.current = true;
+    if (loadedRef.current) latestRef.current.onOccurrencesLoaded(loadedRef.current.list);
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     latestRef.current = { categories, filter, onOccurrencesLoaded };
     if (loadedRef.current) calendarRef.current?.getApi().refetchEvents();
@@ -152,11 +165,12 @@ export function MainCalendar({
   // w środku renderu). JSON nie przenosi dat, więc start/end zamieniamy z powrotem na Date.
   // Błąd pokazujemy w toaście i zwracamy pustą listę.
   // Odpowiedź dla zakresu zostaje w `loadedRef`, a filtr i kolory kategorii nakładamy przy każdym wywołaniu.
-  // Spóźniona odpowiedź dla starego zakresu (po przejściu dalej) nie nadpisuje pamięci ani liczników.
+  // Odpowiedź wyprzedzona przez nowsze wywołanie (inny zakres albo ponowne wczytanie tego samego)
+  // nie nadpisuje pamięci ani liczników.
   const loadEvents = useCallback(async (info: { startStr: string; endStr: string }) => {
     const { from, to } = visibleDateRange(info.startStr, info.endStr);
     const key = `${from}|${to}`;
-    requestedKeyRef.current = key;
+    const requestId = ++requestSeqRef.current;
     let list = loadedRef.current?.key === key ? loadedRef.current.list : null;
     if (!list) {
       try {
@@ -165,7 +179,7 @@ export function MainCalendar({
         if (!res.ok) throw new Error(body.error ?? "Nie udało się wczytać kalendarza");
         list = (body as CalendarOccurrence[]).map((o) => ({ ...o, start: new Date(o.start), end: new Date(o.end) }));
       } catch (error) {
-        if (requestedKeyRef.current !== key) return [];
+        if (requestSeqRef.current !== requestId) return [];
         toastManager.add({
           type: "error",
           title: "Nie udało się wczytać kalendarza",
@@ -173,11 +187,11 @@ export function MainCalendar({
         });
         return [];
       }
-      if (requestedKeyRef.current !== key) return [];
+      if (requestSeqRef.current !== requestId) return [];
       loadedRef.current = { key, list };
     }
     const { categories: currentCategories, filter: currentFilter, onOccurrencesLoaded: onLoaded } = latestRef.current;
-    onLoaded(list);
+    if (mountedRef.current) onLoaded(list);
     const colors = new Map(currentCategories.map((c) => [c.id, c.color]));
     const colorOf = (categoryId: string): CategoryColorId => colors.get(categoryId) ?? "gray";
     return filterOccurrences(list, currentFilter).map((o) => occurrenceToEvent(o, colorOf));

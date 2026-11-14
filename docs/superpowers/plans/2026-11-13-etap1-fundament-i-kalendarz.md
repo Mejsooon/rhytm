@@ -10,7 +10,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-13-life-organizer-design.md`
 
-**Kolejne etapy (osobne plany, pisane po zakończeniu tego):** Etap 2: nawyki + sleep log. Etap 3: kalendarz sportowy + statystyki + heatmapy.
+**Kolejne etapy (osobne plany, pisane po zakończeniu tego):** aktualna lista jest w specyfikacji, sekcja 8 (wersja 2 z 2026-11-14): Etap 1b: kalendarz w cichym stylu + kategorie. Etap 2: nawyki + sen + ekran Dziś. Etap 3: sport. Etap 4: rejestracja z pierwszymi krokami, szybkie dodawanie, wniosek tygodnia, telefon.
+
+**Stan:** zrobione (PR #1, poprawka odczytu kalendarza w PR #2).
 
 ## Global Constraints
 

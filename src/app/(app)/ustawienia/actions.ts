@@ -2,20 +2,16 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { ensureProfile } from "@/lib/profile";
 import { validateProfile, type ProfileInput } from "@/lib/profile-validation";
 
 export type UpdateProfileResult =
   | { ok: true }
   | { ok: false; errors: Partial<Record<keyof ProfileInput | "form", string>> };
 
-// Profil bieżącego użytkownika (RLS zwraca tylko jego wiersz). Kalendarz bierze z niego strefę czasową.
+// Profil bieżącego użytkownika (z założeniem wiersza, jeśli go jeszcze nie ma). Kalendarz bierze z niego strefę czasową.
 export async function getProfile() {
-  // Odczyt sesji najpierw: to ona czyni dane dynamicznymi (bez tego build próbowałby je wyrenderować statycznie).
-  const { userId } = await auth();
-  const supabase = await createServerClient();
-  const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId!).single();
-  if (error) throw new Error(`getProfile: ${error.message}`);
-  return data;
+  return ensureProfile();
 }
 
 export async function updateProfile(formData: FormData): Promise<UpdateProfileResult> {
@@ -32,7 +28,9 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
   if (!result.ok) return result;
 
   const supabase = await createServerClient();
-  const { error } = await supabase.from("profiles").update(result.value).eq("user_id", userId);
-  if (error) return { ok: false, errors: { form: "Nie udało się zapisać zmian. Spróbuj ponownie." } };
+  // Wiersz zakłada się przed zapisem; .select() pozwala sprawdzić, że aktualizacja faktycznie coś zmieniła.
+  await ensureProfile();
+  const { data, error } = await supabase.from("profiles").update(result.value).eq("user_id", userId).select();
+  if (error || !data || data.length === 0) return { ok: false, errors: { form: "Nie udało się zapisać zmian. Spróbuj ponownie." } };
   return { ok: true };
 }

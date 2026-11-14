@@ -23,4 +23,19 @@ describe('validateBlockFields', () => {
     expect(() => validateBlockFields({ startLocal, recurrence: { freq: 'daily', until: '2026-11-16' } })).not.toThrow();
     expect(() => validateBlockFields({ startLocal, recurrence: { freq: 'weekly' } })).not.toThrow();
   });
+
+  it('odrzuca nieznany kolor i zły format startu', () => {
+    expect(() => validateBlockFields({ color: '#123456' })).toThrow('Nieznany kolor bloku');
+    expect(() => validateBlockFields({ color: 'green' })).not.toThrow();
+    expect(() => validateBlockFields({ startLocal: '2026-11-16 09:00' })).toThrow('Nieprawidłowa data początku');
+  });
+  it('sprawdza kształt powtarzania', () => {
+    const bad = (recurrence: unknown) => () => validateBlockFields({ recurrence: recurrence as never });
+    expect(bad({ freq: 'hourly' })).toThrow('Nieprawidłowe powtarzanie');
+    expect(bad({ freq: 'custom', byWeekday: [] })).toThrow('Nieprawidłowe powtarzanie');
+    expect(bad({ freq: 'custom', byWeekday: [0, 8] })).toThrow('Nieprawidłowe powtarzanie');
+    expect(bad({ freq: 'daily', until: '31.12.2026' })).toThrow('Nieprawidłowe powtarzanie');
+    expect(bad({ freq: 'custom', byWeekday: [1, 7], until: '2026-12-31' })).not.toThrow();
+    expect(bad(null)).not.toThrow();
+  });
 });

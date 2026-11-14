@@ -80,6 +80,18 @@ describe('dayRows', () => {
   });
 });
 
+describe('dayRows — postęp tygodnia w innym tygodniu', () => {
+  const stretch = habit('rozciaganie', weekly3, ['2026-11-10', '2026-11-16']);
+
+  it('dzień z wcześniejszego tygodnia: „w tamtym tyg.”', () => {
+    expect(dayRows([stretch], '2026-11-12', '2026-11-18')[0].meta).toBe('1 z 3 w tamtym tyg.');
+  });
+
+  it('wcześniejszy dzień bieżącego tygodnia: nadal „w tym tyg.”', () => {
+    expect(dayRows([stretch], '2026-11-16', '2026-11-18')[0].meta).toBe('1 z 3 w tym tyg.');
+  });
+});
+
 describe('habitDayKind', () => {
   const study = habit('nauka', weekdaysOnly, ['2026-11-16']);
 

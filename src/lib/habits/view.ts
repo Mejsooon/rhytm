@@ -1,4 +1,4 @@
-import { addDays, format, getISODay, parseISO } from 'date-fns';
+import { addDays, format, getISODay, isSameISOWeek, parseISO } from 'date-fns';
 import { habitStreak, isPlannedOn, scheduleOn, weekProgress } from './schedule';
 import type { HabitHistory, HabitSchedule } from './types';
 
@@ -83,7 +83,9 @@ export function dayRows(habits: HabitHistory[], date: string, today: string): Da
     if (schedule.type === 'none') meta = 'bez planu';
     else if (schedule.type === 'weekly') {
       const progress = weekProgress(habit, date);
-      if (progress) meta = `${progress.done} z ${progress.target} w tym tyg.`;
+      // Tydzień oglądanego dnia, który już minął, to „tamten”; wcześniejszy dzień tego tygodnia nadal „ten”.
+      const week = isSameISOWeek(parseISO(date), parseISO(today)) ? 'w tym tyg.' : 'w tamtym tyg.';
+      if (progress) meta = `${progress.done} z ${progress.target} ${week}`;
     } else {
       const streak = habitStreak(habit, date);
       if (streak && streak.value > 0) meta = streakLabel(streak);

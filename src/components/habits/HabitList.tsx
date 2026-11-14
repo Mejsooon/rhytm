@@ -26,8 +26,10 @@ type HabitListProps = {
 
 type DialogState = { mode: "create" } | { mode: "edit"; habit: HabitHistory } | null;
 
-function showError(title: string, error: unknown) {
-  toastManager.add({ type: "error", title, description: error instanceof Error ? error.message : undefined });
+// Błąd oczekiwany przychodzi z akcji jako wartość (czytelny komunikat). Rzucony błąd to awaria
+// (sieć, sesja); w produkcji Next.js ukrywa jego treść, więc pokazujemy tylko tytuł.
+function showError(title: string, description?: string) {
+  toastManager.add({ type: "error", title, description });
 }
 
 /**
@@ -58,22 +60,26 @@ export function HabitList({ initialHabits, date, today }: HabitListProps) {
 
   async function toggle(habit: HabitHistory, done: boolean) {
     setChecked(habit.id, done);
-    try {
-      await setHabitCheck(habit.id, date, done);
-    } catch (error) {
-      setChecked(habit.id, !done);
-      showError("Nie udało się zapisać odhaczenia", error);
-    }
+    const result = await setHabitCheck(habit.id, date, done).catch(() => null);
+    if (result?.ok) return;
+    setChecked(habit.id, !done);
+    showError("Nie udało się zapisać odhaczenia", result?.error);
   }
 
-  // Zapis z okna nawyku. Błąd leci dalej: okno pokazuje go i zostaje otwarte.
+  // Zapis z okna nawyku. Błąd leci dalej jako Error z komunikatem: okno pokazuje go i zostaje otwarte.
   async function submitHabit(input: HabitInput) {
     if (!dialog) return;
+    const result = await (dialog.mode === "create" ? createHabit(input) : updateHabit(dialog.habit.id, input)).catch(
+      () => null,
+    );
+    if (result === null) throw new Error("Nie udało się zapisać nawyku. Spróbuj ponownie.");
+    if (!result.ok) throw new Error(result.error);
+
     if (dialog.mode === "create") {
-      const created = fromDTO(await createHabit(input));
+      const created = fromDTO(result.data);
       setHabits((list) => [...list, created]);
     } else {
-      const updated = fromDTO(await updateHabit(dialog.habit.id, input));
+      const updated = fromDTO(result.data);
       // updateHabit zwraca odhaczenia tylko z ostatnich 53 tygodni, więc dokładamy starsze, które klient już ma.
       setHabits((list) =>
         list.map((habit) =>
@@ -87,12 +93,10 @@ export function HabitList({ initialHabits, date, today }: HabitListProps) {
   async function archive(habit: HabitHistory) {
     setDetailId(null);
     setHabits((list) => list.map((h) => (h.id === habit.id ? { ...h, archivedOn: today } : h)));
-    try {
-      await archiveHabit(habit.id);
-    } catch (error) {
-      setHabits((list) => list.map((h) => (h.id === habit.id ? { ...h, archivedOn: habit.archivedOn } : h)));
-      showError("Nie udało się zarchiwizować nawyku", error);
-    }
+    const result = await archiveHabit(habit.id).catch(() => null);
+    if (result?.ok) return;
+    setHabits((list) => list.map((h) => (h.id === habit.id ? { ...h, archivedOn: habit.archivedOn } : h)));
+    showError("Nie udało się zarchiwizować nawyku", result?.error);
   }
 
   const newHabitButton = (

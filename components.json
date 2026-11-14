@@ -19,6 +19,6 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@coss": "http://localhost:4874/{name}.json"
+    "@coss": "https://coss.com/ui/r/{name}.json"
   }
 }

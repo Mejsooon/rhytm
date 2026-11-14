@@ -57,6 +57,9 @@ describe('validateSleepInput', () => {
     expect(() => validateSleepInput({ ...validInput, sleptAt: '24:00' }, TZ, '2026-11-18')).toThrow('Nieprawidłowa godzina');
     expect(() => validateSleepInput({ ...validInput, wokeAt: '7:00' }, TZ, '2026-11-18')).toThrow('Nieprawidłowa godzina');
     expect(() => validateSleepInput({ ...validInput, date: '18-11-2026' }, TZ, '2026-11-18')).toThrow('Nieprawidłowa data');
+    for (const date of ['2026-02-30', '2026-13-01', '2026-00-10']) {
+      expect(() => validateSleepInput({ ...validInput, date }, TZ, '2026-11-18')).toThrow('Nieprawidłowa data');
+    }
   });
 
   it('rejects sleep shorter than 30 minutes or longer than 16 hours', () => {
@@ -77,6 +80,7 @@ describe('validateSleepInput', () => {
     expect(() => validateSleepInput({ ...validInput, note: 'a'.repeat(501) }, TZ, '2026-11-18')).toThrow(
       'Notatka może mieć najwyżej 500 znaków',
     );
+    expect(validateSleepInput({ ...validInput, note: '😀'.repeat(500) }, TZ, '2026-11-18').note).toHaveLength(1000);
     expect(validateSleepInput({ ...validInput, note: 'a'.repeat(500) }, TZ, '2026-11-18').note).toHaveLength(500);
   });
 

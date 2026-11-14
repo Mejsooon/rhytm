@@ -1,4 +1,4 @@
-import { addDays, addMonths, format, parseISO } from 'date-fns';
+import { addDays, addMonths, format, isValid, parseISO } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 import { heatmapDays } from '../habits/heatmap';
 import type { HeatRange } from '../habits/heatmap';
@@ -47,7 +47,8 @@ export function validateSleepInput(
   timezone: string,
   today: string,
 ): SleepLog {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || format(parseISO(input.date), DAY_FORMAT) !== input.date) {
+  const parsedDate = parseISO(input.date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !isValid(parsedDate) || format(parsedDate, DAY_FORMAT) !== input.date) {
     throw new Error('Nieprawidłowa data');
   }
   if (!TIME_PATTERN.test(input.sleptAt) || !TIME_PATTERN.test(input.wokeAt)) {
@@ -66,7 +67,7 @@ export function validateSleepInput(
   }
 
   const note = input.note.trim();
-  if (note.length > 500) {
+  if ([...note].length > 500) {
     throw new Error('Notatka może mieć najwyżej 500 znaków');
   }
 

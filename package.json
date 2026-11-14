@@ -33,6 +33,7 @@
     "temporal-polyfill": "^1.0.8"
   },
   "devDependencies": {
+    "@clerk/testing": "^2.3.0",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^22.20.5",

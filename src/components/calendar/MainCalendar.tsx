@@ -31,6 +31,7 @@ import { occurrenceToEvent, visibleDateRange, type CalendarOccurrence } from "@/
 import { CATEGORY_COLORS } from "@/lib/calendar/colors";
 import type { BlockChange, Scope } from "@/lib/calendar/plan-edit";
 import { BlockForm } from "./BlockForm";
+import { BlockPanel } from "./BlockPanel";
 import { ScopeDialog } from "./ScopeDialog";
 
 const VIEWS = [
@@ -54,7 +55,7 @@ type PendingScope =
 type MainCalendarProps = {
   /** Strefa czasowa z profilu (IANA), np. Europe/Warsaw. */
   timezone: string;
-  /** Kliknięcie bloku. Bez tej właściwości otwiera się formularz edycji (Task 9 podłączy tu panel bloku). */
+  /** Kliknięcie bloku. Bez tej właściwości otwiera się panel bloku z zadaniami (BlockPanel). */
   onEventClick?: (occurrence: CalendarOccurrence) => void;
 };
 
@@ -72,6 +73,7 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
   const [viewType, setViewType] = useState<string>("timeGridWeek");
   const [form, setForm] = useState<FormState | null>(null);
   const [pending, setPending] = useState<PendingScope | null>(null);
+  const [panel, setPanel] = useState<CalendarOccurrence | null>(null);
   const [droppedTaskCount, setDroppedTaskCount] = useState(0);
   const previewCounter = useRef(0);
 
@@ -165,7 +167,7 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
   function handleEventClick(info: EventClickInfo) {
     const occurrence: CalendarOccurrence = info.event.extendedProps.occurrence;
     if (onEventClick) return onEventClick(occurrence);
-    setForm({ mode: "edit", initial: blockFormFromOccurrence(occurrence, timezone), occurrence });
+    setPanel(occurrence);
   }
 
   // Przycisk „+”: blok na najbliższą pełną godzinę, na godzinę.
@@ -377,6 +379,26 @@ export function MainCalendar({ timezone, onEventClick }: MainCalendarProps) {
           <PlusIcon aria-hidden="true" />
         </Button>
       </div>
+
+      {/* Panel zamyka się przed edycją/usunięciem: dalej działają te same przepływy (BlockForm, ScopeDialog). */}
+      {panel && (
+        <BlockPanel
+          key={`${panel.blockId}|${panel.occurrenceDate}`}
+          occurrence={panel}
+          timezone={timezone}
+          onChanged={refetch}
+          onClose={() => setPanel(null)}
+          onEdit={() => {
+            setForm({ mode: "edit", initial: blockFormFromOccurrence(panel, timezone), occurrence: panel });
+            setPanel(null);
+          }}
+          onDelete={() => {
+            setDroppedTaskCount(0);
+            setPending({ kind: "delete", occurrence: panel });
+            setPanel(null);
+          }}
+        />
+      )}
 
       {form && (
         <BlockForm

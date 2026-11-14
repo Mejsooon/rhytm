@@ -1,21 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RepeatIcon, TrashIcon } from "lucide-react";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import { PlusIcon, TrashIcon, XIcon } from "lucide-react";
 import { addTask, deleteTask, listTasks, renameTask, toggleTask, type BlockTask } from "@/app/(app)/kalendarz/actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetPanel, SheetPopup, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetPopup, SheetTitle } from "@/components/ui/sheet";
 import { toastManager } from "@/components/ui/toast";
 import { useIsMobile } from "@/hooks/use-media-query";
 import { occurrenceHeading, taskProgress } from "@/lib/calendar/block-panel";
 import type { CalendarOccurrence } from "@/lib/calendar/calendar-events";
 import { categoryColor } from "@/lib/calendar/colors";
+import type { Category } from "@/lib/categories/categories";
 import { cn } from "@/lib/utils";
+import { QUIET_BUTTON_DANGER, QUIET_BUTTON_LIGHT } from "./quiet-classes";
 
 type BlockPanelProps = {
   occurrence: CalendarOccurrence;
+  /** Kategoria bloku (nazwa i kolor w nagłówku); brak = kategoria nieznana, pokazujemy szary „Bez kategorii”. */
+  category?: Category;
+  /** Element z `position: relative`, w którym panel ląduje na desktopie (przy prawej krawędzi obszaru kalendarza). */
+  container: HTMLElement | null;
   /** Strefa czasowa z profilu (IANA), do godzin w nagłówku. */
   timezone: string;
   /** Wywoływane po każdej zmianie zadań, żeby kalendarz odświeżył liczniki. */
@@ -28,17 +35,18 @@ type BlockPanelProps = {
 };
 
 /**
- * Panel wystąpienia bloku: szuflada z prawej na desktopie, z dołu na mobile. Każde wystąpienie ma własną
+ * Panel wystąpienia bloku: na desktopie 360 px przy prawej krawędzi obszaru kalendarza, bez przyciemnienia tła
+ * (portal do `container`), na mobile szuflada od dołu. Każde wystąpienie ma własną
  * listę zadań (klucz: blockId + occurrenceDate). Zmiany są optymistyczne i wracają do stanu sprzed zmiany
  * z toastem błędu, gdy serwer je odrzuci.
  */
-export function BlockPanel({ occurrence, timezone, onChanged, onEdit, onDelete, onClose }: BlockPanelProps) {
+export function BlockPanel({ occurrence, category, container, timezone, onChanged, onEdit, onDelete, onClose }: BlockPanelProps) {
   const isMobile = useIsMobile();
   const { blockId, occurrenceDate } = occurrence;
   const [tasks, setTasks] = useState<BlockTask[] | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null);
-  const color = categoryColor('gray'); // tymczasowo: kolor z listy kategorii dojdzie w Zadaniu 9
+  const color = categoryColor(category?.color ?? "gray");
   const progress = taskProgress(tasks ?? []);
 
   // Wczytanie listy zadań. Rodzic montuje panel z `key` wystąpienia, więc każde wystąpienie zaczyna od pustego stanu;
@@ -123,92 +131,105 @@ export function BlockPanel({ occurrence, timezone, onChanged, onEdit, onDelete, 
     }
   }
 
-  return (
-    <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetPopup
-        side={isMobile ? "bottom" : "right"}
-        className="md:max-w-[400px]"
-        closeProps={{ "aria-label": "Zamknij panel" }}
-      >
-        <div className="flex items-start gap-3 p-5 pe-14 max-md:p-4 max-md:pe-14">
-          <span aria-hidden="true" className="mt-1.5 size-3.5 shrink-0 rounded-[4px]" style={{ background: color.dot }} />
-          <div className="min-w-0">
-            <SheetTitle className="text-[22px] leading-tight break-words">{occurrence.title}</SheetTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{occurrenceHeading(occurrence, timezone)}</p>
-            {occurrence.recurring && (
-              <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                <RepeatIcon aria-hidden="true" className="size-3" />
-                Powtarzany
-              </span>
-            )}
-          </div>
+  const Title = isMobile ? SheetTitle : DialogPrimitive.Title;
+
+  const content = (
+    <>
+      <div className="flex items-start gap-2.5 p-[18px] max-md:pe-14">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="flex items-center gap-1.5 text-xs text-[#7D7C78]">
+            <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: color.dot }} />
+            {category?.name ?? "Bez kategorii"}
+            {occurrence.recurring && <span>· powtarzanie</span>}
+          </span>
+          <Title className="font-sans text-[17px] leading-snug font-semibold break-words text-[#191816]">
+            {occurrence.title}
+          </Title>
+          <p className="text-[13px] text-[#7D7C78]">{occurrenceHeading(occurrence, timezone)}</p>
+        </div>
+        {!isMobile && (
+          <DialogPrimitive.Close
+            aria-label="Zamknij panel"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-[#7D7C78] outline-none hover:bg-[#F4F4F3] hover:text-[#191816] focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <XIcon aria-hidden="true" className="size-[15px]" />
+          </DialogPrimitive.Close>
+        )}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[18px]">
+        <div className="flex items-center justify-between text-[13px]">
+          <h3 className="font-medium">Zadania</h3>
+          <span className="text-[#7D7C78] tabular-nums" data-testid="task-counter">
+            {progress.label}
+          </span>
+        </div>
+        <div
+          className="mt-2 h-1 overflow-hidden rounded-sm bg-[#F0F0EE]"
+          role="progressbar"
+          aria-label="Postęp zadań"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress.percent)}
+        >
+          <div className="h-full rounded-sm transition-[width]" style={{ width: `${progress.percent}%`, background: color.dot }} />
         </div>
 
-        <SheetPanel className="pt-0">
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold">Zadania na to wystąpienie</h3>
-            <span className="text-sm text-muted-foreground tabular-nums" data-testid="task-counter">
-              {progress.label}
-            </span>
-          </div>
-          <div
-            className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            aria-label="Postęp zadań"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(progress.percent)}
-          >
-            <div className="h-full rounded-full transition-[width]" style={{ width: `${progress.percent}%`, background: color.dot }} />
-          </div>
-
-          <ul className="mt-3 flex flex-col" aria-label="Lista zadań">
-            {tasks?.map((task) => (
-              <li key={task.id} className="flex min-h-14 items-center gap-3 border-b border-border/60 md:min-h-11">
-                <Checkbox
-                  className="size-[22px] md:size-[18px]"
-                  aria-label={task.title}
-                  checked={task.done}
-                  onCheckedChange={(checked) => void handleToggle(task, checked === true)}
+        <ul className="mt-2 flex flex-col" aria-label="Lista zadań">
+          {tasks?.length === 0 && <li className="px-1 py-2 text-[13px] text-[#9B9A97]">Brak zadań w tym wystąpieniu.</li>}
+          {tasks?.map((task) => (
+            <li key={task.id} className="flex min-h-12 items-center gap-2.5 rounded-md px-1 md:min-h-9">
+              <Checkbox
+                className="size-[22px] md:size-[15px]"
+                aria-label={task.title}
+                checked={task.done}
+                onCheckedChange={(checked) => void handleToggle(task, checked === true)}
+              />
+              {editing?.id === task.id ? (
+                <Input
+                  autoFocus
+                  aria-label="Nazwa zadania"
+                  value={editing.title}
+                  onChange={(e) => setEditing({ id: task.id, title: e.target.value })}
+                  onBlur={() => void handleRename()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void handleRename();
+                    if (e.key === "Escape") {
+                      // Esc kończy tylko edycję nazwy, panel zostaje.
+                      e.stopPropagation();
+                      setEditing(null);
+                    }
+                  }}
                 />
-                {editing?.id === task.id ? (
-                  <Input
-                    autoFocus
-                    aria-label="Nazwa zadania"
-                    value={editing.title}
-                    onChange={(e) => setEditing({ id: task.id, title: e.target.value })}
-                    onBlur={() => void handleRename()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void handleRename();
-                      if (e.key === "Escape") setEditing(null);
-                    }}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className={cn(
-                      "min-w-0 flex-1 truncate py-2 text-start text-[15px]",
-                      task.done && "text-muted-foreground line-through",
-                    )}
-                    onClick={() => setEditing({ id: task.id, title: task.title })}
-                  >
-                    {task.title}
-                  </button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Usuń zadanie ${task.title}`}
-                  onClick={() => void handleDelete(task)}
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    "min-w-0 flex-1 truncate py-1.5 text-start text-[13px]",
+                    task.done && "text-[#9B9A97] line-through",
+                  )}
+                  onClick={() => setEditing({ id: task.id, title: task.title })}
                 >
-                  <TrashIcon aria-hidden="true" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+                  {task.title}
+                </button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-[#9B9A97] hover:text-[#B4342F]"
+                aria-label={`Usuń zadanie ${task.title}`}
+                onClick={() => void handleDelete(task)}
+              >
+                <TrashIcon aria-hidden="true" />
+              </Button>
+            </li>
+          ))}
+        </ul>
 
-          <Input
-            className="mt-3"
+        <label className="flex min-h-9 items-center gap-2.5 px-1 text-[#9B9A97]">
+          <PlusIcon aria-hidden="true" className="size-[15px] shrink-0" />
+          <input
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-[#191816] outline-none placeholder:text-[#9B9A97]"
             aria-label="Dodaj zadanie"
             placeholder="Dodaj zadanie i naciśnij Enter"
             value={newTitle}
@@ -220,26 +241,47 @@ export function BlockPanel({ occurrence, timezone, onChanged, onEdit, onDelete, 
               }
             }}
           />
-          <p className="mt-2 text-xs text-muted-foreground">Każde powtórzenie tego bloku ma własną, pustą listę.</p>
+        </label>
+        <p className="mt-2 text-xs text-[#9B9A97]">Każde powtórzenie tego bloku ma własną, pustą listę.</p>
 
-          {occurrence.note && (
-            <div className="mt-5">
-              <h3 className="text-sm font-semibold">Notatka</h3>
-              <p className="mt-1 text-sm whitespace-pre-wrap text-muted-foreground">{occurrence.note}</p>
-            </div>
-          )}
-        </SheetPanel>
+        {occurrence.note && (
+          <div className="mt-[18px] flex flex-col gap-1 border-t border-[#F0F0EE] pt-3.5">
+            <h3 className="text-xs text-[#7D7C78]">Notatka</h3>
+            <p className="text-[13px] leading-normal whitespace-pre-wrap text-[#37352F]">{occurrence.note}</p>
+          </div>
+        )}
+      </div>
 
-        <div className="flex gap-2 border-t p-4">
-          <Button className="flex-1" variant="outline" onClick={onEdit}>
-            {isMobile ? "Edytuj blok" : "Edytuj"}
-          </Button>
-          <Button variant="destructive-outline" onClick={onDelete}>
-            <TrashIcon aria-hidden="true" />
-            Usuń blok
-          </Button>
-        </div>
-      </SheetPopup>
-    </Sheet>
+      <div className="flex gap-2 border-t border-[#F0F0EE] p-4">
+        <Button className={cn(QUIET_BUTTON_LIGHT, "max-md:h-10 max-md:flex-1")} onClick={onEdit}>
+          {isMobile ? "Edytuj blok" : "Edytuj"}
+        </Button>
+        <Button aria-label="Usuń blok" className={cn(QUIET_BUTTON_DANGER, "max-md:h-10")} onClick={onDelete}>
+          <TrashIcon aria-hidden="true" className="md:hidden" />
+          Usuń
+        </Button>
+      </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open onOpenChange={(open) => !open && onClose()}>
+        <SheetPopup side="bottom" closeProps={{ "aria-label": "Zamknij panel" }}>
+          {content}
+        </SheetPopup>
+      </Sheet>
+    );
+  }
+
+  // Bez przyciemnienia i bez blokady kalendarza (modal={false}); zamykanie tylko X i Esc.
+  return (
+    <DialogPrimitive.Root open modal={false} disablePointerDismissal onOpenChange={(open) => !open && onClose()}>
+      <DialogPrimitive.Portal container={container}>
+        <DialogPrimitive.Popup className="absolute top-0 right-7 bottom-7 z-20 flex w-[360px] max-w-[calc(100%-56px)] flex-col overflow-hidden rounded-xl border border-[#EAEAE8] bg-white text-[#191816] shadow-[0_12px_32px_rgba(25,24,22,0.10)] outline-none">
+          {content}
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }

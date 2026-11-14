@@ -119,6 +119,8 @@ export function MainCalendar({
   const [form, setForm] = useState<FormState | null>(null);
   const [pending, setPending] = useState<PendingScope | null>(null);
   const [panel, setPanel] = useState<CalendarOccurrence | null>(null);
+  // Kontener obszaru kalendarza: na desktopie w nim otwiera się panel bloku.
+  const [panelHost, setPanelHost] = useState<HTMLElement | null>(null);
   const [droppedTaskCount, setDroppedTaskCount] = useState(0);
   const previewCounter = useRef(0);
   // Ostatnia odpowiedź serwera dla zakresu (klucz „from|to”) i numer ostatniego wywołania `loadEvents`.
@@ -450,7 +452,7 @@ export function MainCalendar({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 px-4 pb-4 md:px-7 md:pb-7">
+        <div ref={setPanelHost} className="relative min-h-0 flex-1 px-4 pb-4 md:px-7 md:pb-7">
           <div className="rh-calendar h-full overflow-hidden rounded-xl border border-[#EAEAE8]">
             <FullCalendar
               ref={calendarRef}
@@ -566,6 +568,27 @@ export function MainCalendar({
               }}
             />
           </div>
+          {/* Panel zamyka się przed edycją/usunięciem: dalej działają te same przepływy (BlockForm, ScopeDialog). */}
+          {panel && (
+            <BlockPanel
+              key={`${panel.blockId}|${panel.occurrenceDate}`}
+              occurrence={panel}
+              category={categories.find((c) => c.id === panel.categoryId)}
+              container={panelHost}
+              timezone={timezone}
+              onChanged={refetch}
+              onClose={() => setPanel(null)}
+              onEdit={() => {
+                setForm({ mode: "edit", initial: blockFormFromOccurrence(panel, timezone), occurrence: panel });
+                setPanel(null);
+              }}
+              onDelete={() => {
+                setDroppedTaskCount(0);
+                setPending({ kind: "delete", occurrence: panel });
+                setPanel(null);
+              }}
+            />
+          )}
         </div>
 
         {/* Pływający przycisk „+” na mobile (od md jest przycisk „Dodaj blok” w nagłówku). */}
@@ -579,31 +602,12 @@ export function MainCalendar({
         </Button>
       </div>
 
-      {/* Panel zamyka się przed edycją/usunięciem: dalej działają te same przepływy (BlockForm, ScopeDialog). */}
-      {panel && (
-        <BlockPanel
-          key={`${panel.blockId}|${panel.occurrenceDate}`}
-          occurrence={panel}
-          timezone={timezone}
-          onChanged={refetch}
-          onClose={() => setPanel(null)}
-          onEdit={() => {
-            setForm({ mode: "edit", initial: blockFormFromOccurrence(panel, timezone), occurrence: panel });
-            setPanel(null);
-          }}
-          onDelete={() => {
-            setDroppedTaskCount(0);
-            setPending({ kind: "delete", occurrence: panel });
-            setPanel(null);
-          }}
-        />
-      )}
-
       {form && (
         <BlockForm
           open
           mode={form.mode}
           initialValue={form.initial}
+          categories={categories}
           onSubmit={submitForm}
           onDelete={
             form.mode === "edit"

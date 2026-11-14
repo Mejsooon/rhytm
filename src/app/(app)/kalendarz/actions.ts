@@ -26,6 +26,8 @@ async function fetchSeries(blockId: string): Promise<BlockSeries> {
 }
 
 export async function createBlock(input: Omit<BlockSeries, "id" | "timezone">): Promise<string> {
+  // Nowy blok zawsze ma kategorię; validateBlockFields sprawdza kategorię tylko, gdy jest podana (przy edycji bywa pominięta).
+  if (typeof input.categoryId !== "string" || input.categoryId === "") throw new Error("Nieznana kategoria");
   const { title } = validateBlockFields({
     title: input.title,
     durationMin: input.durationMin,

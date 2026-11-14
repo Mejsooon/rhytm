@@ -1,24 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { ClockIcon, TrashIcon } from "lucide-react";
+import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group";
+import { Radio as RadioPrimitive } from "@base-ui/react/radio";
+import { TrashIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogFooter,
-  DialogHeader,
-  DialogPanel,
-  DialogPopup,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogPopup, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SegmentedControl, SegmentedControlItem } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formDurationMin, type BlockFormValue, type RepeatMode } from "@/lib/calendar/block-form";
+import { categoryColor } from "@/lib/calendar/colors";
 import type { Weekday } from "@/lib/calendar/types";
+import type { Category } from "@/lib/categories/categories";
+import { cn } from "@/lib/utils";
+import {
+  QUIET_BUTTON_DANGER,
+  QUIET_BUTTON_DARK,
+  QUIET_BUTTON_LIGHT,
+  QUIET_CARD,
+  QUIET_INPUT,
+  QUIET_LABEL,
+} from "./quiet-classes";
 
 const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: "none", label: "Nie" },
@@ -42,6 +46,8 @@ type BlockFormProps = {
   open: boolean;
   mode: "create" | "edit";
   initialValue: BlockFormValue;
+  /** Kategorie użytkownika do pola „Kategoria” (kolejność jak w menu). */
+  categories: Category[];
   /** Zapis; rzucony błąd (np. z walidacji serwera) zostaje pokazany w formularzu, a dialog się nie zamyka. */
   onSubmit: (value: BlockFormValue) => Promise<void>;
   /** Tylko w trybie edycji: przycisk „Usuń”. */
@@ -49,7 +55,7 @@ type BlockFormProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function BlockForm({ open, mode, initialValue, onSubmit, onDelete, onOpenChange }: BlockFormProps) {
+export function BlockForm({ open, mode, initialValue, categories, onSubmit, onDelete, onOpenChange }: BlockFormProps) {
   const [value, setValue] = useState(initialValue);
   const [hasEnd, setHasEnd] = useState(initialValue.until !== "");
   const [error, setError] = useState<string | null>(null);
@@ -79,112 +85,172 @@ export function BlockForm({ open, mode, initialValue, onSubmit, onDelete, onOpen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup className="max-w-[520px]">
+      <DialogPopup
+        className={cn("max-w-[480px]", QUIET_CARD)}
+        closeProps={{ "aria-label": "Zamknij" }}
+      >
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
-          <DialogHeader>
-            <DialogTitle>{mode === "create" ? "Nowy blok" : "Edytuj blok"}</DialogTitle>
-          </DialogHeader>
+          <div className="border-b border-[#EAEAE8] px-5 py-3 pe-14">
+            <DialogTitle className="font-sans text-base leading-6 font-semibold text-[#191816]">
+              {mode === "create" ? "Nowy blok" : "Edytuj blok"}
+            </DialogTitle>
+          </div>
 
-          <DialogPanel className="flex flex-col gap-5">
-            <Field>
-              <FieldLabel>Nazwa</FieldLabel>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-[18px]">
+            <Field className="gap-1.5">
+              <FieldLabel className={QUIET_LABEL}>Nazwa</FieldLabel>
               <Input
                 autoFocus
                 required
+                size="lg"
+                className={QUIET_INPUT}
                 value={value.title}
                 onChange={(event) => setValue({ ...value, title: event.target.value })}
               />
             </Field>
 
-            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-muted p-3 text-sm">
-              <ClockIcon aria-hidden="true" className="size-4 text-muted-foreground" />
-              <Input
-                type="date"
-                aria-label="Data"
-                required
-                className="w-auto"
-                value={value.date}
-                onChange={(event) => setValue({ ...value, date: event.target.value })}
-              />
-              <span className="ml-auto flex items-center gap-1.5 font-mono">
+            <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-2.5">
+              <Field className="gap-1.5">
+                <FieldLabel className={QUIET_LABEL}>Data</FieldLabel>
+                <Input
+                  type="date"
+                  required
+                  size="lg"
+                  className={QUIET_INPUT}
+                  value={value.date}
+                  onChange={(event) => setValue({ ...value, date: event.target.value })}
+                />
+              </Field>
+              <Field className="gap-1.5">
+                <FieldLabel className={QUIET_LABEL}>Od</FieldLabel>
                 <Input
                   type="time"
-                  aria-label="Początek"
                   required
-                  className="w-auto"
+                  size="lg"
+                  className={QUIET_INPUT}
                   value={value.startTime}
                   onChange={(event) => setValue({ ...value, startTime: event.target.value })}
                 />
-                –
+              </Field>
+              <Field className="gap-1.5">
+                <FieldLabel className={QUIET_LABEL}>Do</FieldLabel>
                 <Input
                   type="time"
-                  aria-label="Koniec"
                   required
-                  className="w-auto"
+                  size="lg"
+                  className={QUIET_INPUT}
                   value={value.endTime}
                   onChange={(event) => setValue({ ...value, endTime: event.target.value })}
                 />
-              </span>
-              <span className="text-xs text-muted-foreground">{durationLabel}</span>
+              </Field>
+              {durationLabel && <p className="col-span-3 -mt-1.5 text-xs text-[#9B9A97]">Czas trwania: {durationLabel}</p>}
             </div>
 
-            {/* Wybór kategorii dojdzie w Zadaniu 9 (lista kategorii po stronie klienta). */}
+            <fieldset className="flex flex-col gap-1.5">
+              <legend className={cn(QUIET_LABEL, "mb-1.5 p-0")}>Kategoria</legend>
+              <RadioGroupPrimitive
+                aria-label="Kategoria"
+                value={value.categoryId}
+                onValueChange={(categoryId) => setValue({ ...value, categoryId: categoryId as string })}
+                className="flex flex-row flex-wrap gap-1.5"
+              >
+                {categories.map((category) => {
+                  const checked = category.id === value.categoryId;
+                  return (
+                    <RadioPrimitive.Root
+                      key={category.id}
+                      value={category.id}
+                      className={cn(
+                        "flex h-[30px] cursor-pointer items-center gap-1.5 rounded-full border bg-white px-2.5 text-[13px] font-medium whitespace-nowrap text-[#37352F] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+                        checked ? "border-[#37352F]" : "border-[#E6E6E4]",
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="size-2 shrink-0 rounded-full"
+                        style={{ background: categoryColor(category.color).dot }}
+                      />
+                      {category.name}
+                    </RadioPrimitive.Root>
+                  );
+                })}
+              </RadioGroupPrimitive>
+            </fieldset>
+
             {/* Powtarzanie także przy edycji: zmiana zapisuje się tylko dla „To i następne” albo „Wszystkie”. */}
-            <fieldset className="flex flex-col gap-2.5">
-              <legend className="mb-2 text-sm font-medium">Powtarzanie</legend>
-              <SegmentedControl aria-label="Powtarzanie" className="w-full">
-                {REPEAT_OPTIONS.map((option) => (
-                  <SegmentedControlItem
-                    key={option.value}
-                    className="flex-1"
-                    aria-pressed={value.repeat === option.value}
-                    data-checked={value.repeat === option.value ? "" : undefined}
-                    onClick={() => setValue({ ...value, repeat: option.value })}
-                  >
-                    {option.label}
-                  </SegmentedControlItem>
-                ))}
-              </SegmentedControl>
+            <fieldset className="flex flex-col gap-2">
+              <legend className={cn(QUIET_LABEL, "mb-1.5 p-0")}>Powtarzanie</legend>
+              <div role="group" aria-label="Powtarzanie" className="flex gap-0.5 rounded-lg bg-[#F4F4F3] p-0.5">
+                {REPEAT_OPTIONS.map((option) => {
+                  const active = value.repeat === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      className={cn(
+                        "h-7 flex-auto rounded-md border px-2 text-[13px] font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        active
+                          ? "border-[#E6E6E4] bg-white text-[#191816] shadow-[0_1px_1px_rgba(0,0,0,0.04)]"
+                          : "border-transparent bg-transparent text-[#7D7C78] hover:text-[#191816]",
+                      )}
+                      onClick={() => setValue({ ...value, repeat: option.value })}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
 
               {value.repeat === "custom" && (
-                <ToggleGroup
-                  multiple
-                  variant="outline"
-                  aria-label="Dni tygodnia"
-                  className="flex-wrap gap-1.5"
-                  value={value.weekdays.map(String)}
-                  onValueChange={(days: string[]) =>
-                    setValue({ ...value, weekdays: days.map(Number).sort() as Weekday[] })
-                  }
-                >
-                  {WEEKDAYS.map((day) => (
-                    <ToggleGroupItem
-                      key={day.value}
-                      value={String(day.value)}
-                      aria-label={day.full}
-                      className="w-10 data-pressed:bg-primary data-pressed:text-primary-foreground"
-                    >
-                      {day.short}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
+                <div role="group" aria-label="Dni tygodnia" className="flex flex-wrap gap-1">
+                  {WEEKDAYS.map((day) => {
+                    const active = value.weekdays.includes(day.value);
+                    return (
+                      <button
+                        key={day.value}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={day.full}
+                        className={cn(
+                          "h-[30px] w-[34px] rounded-md border text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          active
+                            ? "border-[#37352F] bg-[#37352F] text-white"
+                            : "border-[#E6E6E4] bg-white text-[#7D7C78] hover:text-[#191816]",
+                        )}
+                        onClick={() =>
+                          setValue({
+                            ...value,
+                            weekdays: (active
+                              ? value.weekdays.filter((d) => d !== day.value)
+                              : [...value.weekdays, day.value]
+                            ).sort() as Weekday[],
+                          })
+                        }
+                      >
+                        {day.short}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
 
               {value.repeat !== "none" && (
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex min-h-9 items-center gap-2.5 text-sm">
+                  <label className="flex min-h-9 items-center gap-2 text-[13px] text-[#37352F]">
                     <Checkbox checked={hasEnd} onCheckedChange={(checked) => setHasEnd(checked === true)} />
                     Kończy się
-                    {!hasEnd && <span className="text-muted-foreground">— bez daty końca</span>}
+                    {!hasEnd && <span className="text-[#9B9A97]">— bez daty końca</span>}
                   </label>
                   {hasEnd && (
                     <Input
                       type="date"
                       aria-label="Data końca"
                       required
+                      size="lg"
                       // Przy edycji efektywny start zależy od zakresu (np. „Wszystkie” = start serii), więc sprawdza go serwer.
                       min={mode === "create" ? value.date : undefined}
-                      className="w-auto"
+                      className={cn(QUIET_INPUT, "w-auto")}
                       value={value.until}
                       onChange={(event) => setValue({ ...value, until: event.target.value })}
                     />
@@ -193,39 +259,39 @@ export function BlockForm({ open, mode, initialValue, onSubmit, onDelete, onOpen
               )}
             </fieldset>
 
-            <Field>
-              <FieldLabel>
-                Notatka <span className="font-normal text-muted-foreground">(opcjonalnie)</span>
+            <Field className="gap-1.5">
+              <FieldLabel className={QUIET_LABEL}>
+                Notatka <span className="font-normal text-[#9B9A97]">(opcjonalnie)</span>
               </FieldLabel>
               <Textarea
                 rows={2}
-                className="resize-none"
+                className={cn(QUIET_INPUT, "[&_textarea]:resize-none [&_textarea]:px-2.5 [&_textarea]:py-2")}
                 value={value.note}
                 onChange={(event) => setValue({ ...value, note: event.target.value })}
               />
             </Field>
 
             {error && (
-              <p role="alert" className="text-sm text-destructive-foreground">
+              <p role="alert" className="text-[13px] text-destructive-foreground">
                 {error}
               </p>
             )}
-          </DialogPanel>
+          </div>
 
-          <DialogFooter variant="bare">
+          <div className="flex items-center justify-end gap-2 rounded-b-xl border-t border-[#EAEAE8] bg-[#FCFCFB] px-5 py-3.5">
             {mode === "edit" && onDelete && (
-              <Button type="button" variant="destructive-outline" className="sm:mr-auto" onClick={onDelete}>
+              <Button type="button" className={cn(QUIET_BUTTON_DANGER, "mr-auto")} onClick={onDelete}>
                 <TrashIcon aria-hidden="true" />
                 Usuń
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" className={QUIET_BUTTON_LIGHT} onClick={() => onOpenChange(false)}>
               Anuluj
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" className={QUIET_BUTTON_DARK} disabled={saving}>
               {mode === "create" ? "Utwórz blok" : "Zapisz"}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogPopup>
     </Dialog>

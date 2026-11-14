@@ -55,11 +55,14 @@ Aplikacja nie używa Supabase Auth. Supabase dostaje token sesji Clerka i z nieg
 Masz dwie drogi, wybierz jedną:
 
 - **Edytor SQL (najprościej):** Supabase Dashboard → **SQL Editor** → wklej całą zawartość pliku
-  `supabase/migrations/0001_init.sql` → **Run**.
+  `supabase/migrations/0001_init.sql` → **Run**, a potem w ten sam sposób
+  `supabase/migrations/0002_categories.sql` (kategorie bloków; uruchom ją po `0001`).
 - **Supabase CLI:** `supabase link --project-ref <id-projektu>`, a potem `supabase db push`.
 
 Migracja tworzy tabele (`profiles`, `blocks`, `block_exceptions`, `block_tasks`), uprawnienia i polityki RLS
-„tylko własne wiersze”.
+„tylko własne wiersze”. Migracja `0002_categories.sql` dodaje tabelę kategorii i przypisuje do nich bloki:
+kolory istniejących bloków zamienia na kategorie o nazwach kolorów (np. „Niebieski”), które możesz potem
+zmienić ołówkiem w menu kalendarza (`supabase db push` uruchamia obie migracje po kolei).
 
 ### Krok 5. Uruchom aplikację
 

@@ -2,6 +2,9 @@ import { clerk, setupClerkTestingToken } from "@clerk/testing/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { missingEnv } from "./e2e-env";
 
+// UWAGA: test na chwilę ZASTĘPUJE wpis snu z dzisiejszej nocy konta testowego (czyta go, usuwa, zapisuje własny),
+// a na końcu przywraca oryginał (godziny, samopoczucie, notatka). Awaria procesu w trakcie może zostawić wpis testowy
+// (23:40-07:10), dlatego używaj osobnego konta testowego, nie swojego głównego.
 test.skip(missingEnv.length > 0, `Brak zmiennych środowiskowych dla e2e: ${missingEnv.join(", ")}`);
 
 async function signIn(page: Page) {
@@ -17,16 +20,53 @@ async function signIn(page: Page) {
   });
 }
 
-// Usuwa wpis snu z dzisiejszej nocy (jeśli jest), żeby test startował i kończył z pustym formularzem.
+type SleepSnapshot = { sleptAt: string; wokeAt: string; feeling: string | null; note: string };
+
+// Czyta wpis snu z dzisiejszej nocy z formularza na /nawyki (null, gdy wpisu nie ma).
+async function readTodaySleep(page: Page): Promise<SleepSnapshot | null> {
+  await page.goto("/nawyki");
+  const sleepForm = page.getByRole("form", { name: "Wpis snu" });
+  await expect(sleepForm.getByRole("button", { name: "Zapisz" })).toBeVisible();
+  if ((await sleepForm.getByRole("button", { name: "Usuń" }).count()) === 0) return null;
+  const checked = sleepForm.getByRole("radio", { checked: true });
+  return {
+    sleptAt: await sleepForm.getByLabel("Zasnąłem").inputValue(),
+    wokeAt: await sleepForm.getByLabel("Obudziłem się").inputValue(),
+    feeling: (await checked.count()) > 0 ? await checked.first().innerText() : null,
+    note: await sleepForm.getByLabel("Notatka").inputValue(),
+  };
+}
+
+// Usuwa wpis snu z dzisiejszej nocy (jeśli jest) i zostawia pusty formularz.
 async function deleteTodaySleepIfAny(page: Page) {
   await page.goto("/nawyki");
   const sleepForm = page.getByRole("form", { name: "Wpis snu" });
   await expect(sleepForm.getByRole("button", { name: "Zapisz" })).toBeVisible();
   const remove = sleepForm.getByRole("button", { name: "Usuń" });
   if ((await remove.count()) === 0) return;
-  await remove.click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "Usuń" }).click();
+  const confirm = page.getByRole("alertdialog");
+  // Przycisk bywa kliknięty przed hydratacją strony: ponawiamy, aż otworzy się potwierdzenie.
+  await expect(async () => {
+    await remove.click();
+    await expect(confirm).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await confirm.getByRole("button", { name: "Usuń" }).click();
   await expect(remove).toHaveCount(0);
+}
+
+// Zapisuje z powrotem wpis snu odczytany na początku testu.
+async function restoreSleep(page: Page, original: SleepSnapshot) {
+  await page.goto("/nawyki");
+  const sleepForm = page.getByRole("form", { name: "Wpis snu" });
+  await expect(sleepForm.getByRole("button", { name: "Zapisz" })).toBeVisible();
+  await sleepForm.getByLabel("Zasnąłem").fill(original.sleptAt);
+  await sleepForm.getByLabel("Obudziłem się").fill(original.wokeAt);
+  if (original.feeling) {
+    await sleepForm.getByRole("radiogroup", { name: "Samopoczucie" }).getByRole("radio", { name: original.feeling, exact: true }).click();
+  }
+  await sleepForm.getByLabel("Notatka").fill(original.note);
+  await sleepForm.getByRole("button", { name: "Zapisz" }).click();
+  await expect(sleepForm.getByRole("button", { name: "Usuń" })).toBeVisible();
 }
 
 test("nawyki, sen i ekran Dziś: utworzenie, odhaczenie, zapis snu, archiwizacja", async ({ page }) => {
@@ -34,6 +74,7 @@ test("nawyki, sen i ekran Dziś: utworzenie, odhaczenie, zapis snu, archiwizacja
   const name = `Woda e2e ${Date.now()}`;
 
   await signIn(page);
+  const originalSleep = await readTodaySleep(page);
   await deleteTodaySleepIfAny(page);
 
   try {
@@ -60,7 +101,9 @@ test("nawyki, sen i ekran Dziś: utworzenie, odhaczenie, zapis snu, archiwizacja
     const todayCheckbox = todayHabits.getByRole("checkbox", { name });
     await expect(todayCheckbox).toBeVisible();
     await Promise.all([
-      page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/dzis")),
+      page
+        .waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/dzis"))
+        .then((response) => expect(response.ok()).toBe(true)),
       todayCheckbox.click(),
     ]);
     await expect(todayCheckbox).toBeChecked();
@@ -105,14 +148,24 @@ test("nawyki, sen i ekran Dziś: utworzenie, odhaczenie, zapis snu, archiwizacja
     await expect(page.getByRole("region", { name: "Nawyki na dziś" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name })).toHaveCount(0);
   } finally {
-    // Sprzątanie także po nieudanym przebiegu: wpis snu usuwamy zawsze, nawyk archiwizujemy, jeśli został.
-    await deleteTodaySleepIfAny(page);
-    const leftover = page.getByRole("button", { name, exact: true });
-    if ((await leftover.count()) > 0) {
-      await leftover.click();
-      await page.getByRole("dialog").getByRole("button", { name: "Archiwizuj" }).click();
-      await page.getByRole("alertdialog").getByRole("button", { name: "Archiwizuj" }).click();
-      await expect(leftover).toHaveCount(0);
+    // Sprzątanie: każdy krok osobno, żeby błąd sprzątania nie przykrył błędu testu ani nie pominął kolejnych kroków.
+    try {
+      await deleteTodaySleepIfAny(page);
+      if (originalSleep) await restoreSleep(page, originalSleep);
+    } catch (error) {
+      console.warn("Sprzątanie snu nie powiodło się (sprawdź wpis z dzisiejszej nocy ręcznie):", error);
+    }
+    try {
+      await page.goto("/nawyki");
+      const leftover = page.getByRole("button", { name, exact: true });
+      if ((await leftover.count()) > 0) {
+        await leftover.click();
+        await page.getByRole("dialog").getByRole("button", { name: "Archiwizuj" }).click();
+        await page.getByRole("alertdialog").getByRole("button", { name: "Archiwizuj" }).click();
+        await expect(leftover).toHaveCount(0);
+      }
+    } catch (error) {
+      console.warn(`Sprzątanie nawyku "${name}" nie powiodło się (zarchiwizuj go ręcznie):`, error);
     }
   }
 });

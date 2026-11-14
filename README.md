@@ -144,8 +144,11 @@ Test potrzebuje działającej konfiguracji z kroków 1–4 oraz konta testowego 
 | `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL` | Jak w kroku 2. |
 
 Test nawyków (`e2e/habits.spec.ts`) tworzy nawyk z unikalną nazwą i zapisuje sen z dzisiejszej nocy (23:40–07:10).
-Na koniec archiwizuje nawyk i usuwa ten wpis snu, więc możesz go powtarzać. Jeśli konto testowe ma już wpis snu
-z dzisiejszej nocy, test go usunie.
+Na koniec archiwizuje nawyk i usuwa swój wpis snu, więc możesz go powtarzać.
+
+> **Uwaga:** jeśli konto testowe ma już wpis snu z dzisiejszej nocy, test go **czasowo zastępuje**: odczytuje
+> (godziny, samopoczucie, notatka), usuwa, a na końcu przywraca. Awaria w trakcie (np. zamknięty terminal) może
+> zostawić wpis testowy. Dlatego użyj **osobnego konta testowego**, a nie swojego głównego.
 
 Gdy którejś zmiennej brakuje, test jest **pomijany** (skipped) z listą brakujących nazw, a serwer nie startuje.
 Gdy wszystkie są, Playwright sam uruchamia `npm run dev`.

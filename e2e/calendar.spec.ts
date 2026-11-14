@@ -18,7 +18,7 @@ async function signIn(page: Page) {
   await page.goto("/kalendarz");
 }
 
-// Poniedziałek następnego tygodnia (zawsze po dzisiejszym dniu), żeby wystąpienia były w widoku po jednym kliknięciu „Następny okres”.
+// Poniedziałek następnego tygodnia (zawsze po dzisiejszym dniu), żeby wystąpienia były w widoku po jednym kliknięciu „Następny tydzień” (domyślny widok tygodnia na desktopie).
 function nextMondayIso() {
   const monday = new Date();
   monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7));
@@ -45,7 +45,7 @@ test("blok z zadaniami: każde wystąpienie ma własną listę, stan przeżywa p
 
   const occurrences = page.locator(".rh-ev", { hasText: title });
   const openNextWeek = async () => {
-    await page.getByRole("button", { name: "Następny okres" }).click();
+    await page.getByRole("button", { name: "Następny tydzień" }).click();
     await expect(occurrences.first()).toBeVisible();
   };
   await openNextWeek();
@@ -100,6 +100,8 @@ test("kategoria: nowa kategoria w menu, blok w niej, ukrywanie i pokazywanie kro
     await expect(categoryDialog).toBeHidden();
   }
   await expect(menuItem).toBeVisible();
+  // Poprzedni nieudany przebieg mógł zostawić kategorię ukrytą: najpierw ją pokazujemy.
+  if ((await menuItem.getAttribute("aria-pressed")) === "false") await menuItem.click();
   await expect(menuItem).toHaveAttribute("aria-pressed", "true");
 
   // Blok w tej kategorii: poniedziałek następnego tygodnia 11:00–12:00.
@@ -114,7 +116,7 @@ test("kategoria: nowa kategoria w menu, blok w niej, ukrywanie i pokazywanie kro
   await expect(form).toBeHidden();
 
   const occurrence = page.locator(".rh-ev", { hasText: title });
-  await page.getByRole("button", { name: "Następny okres" }).click();
+  await page.getByRole("button", { name: "Następny tydzień" }).click();
   await expect(occurrence).toBeVisible();
   await expect(occurrence).toHaveClass(/rh-ev-violet/);
 

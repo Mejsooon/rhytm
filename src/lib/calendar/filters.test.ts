@@ -16,8 +16,15 @@ describe('filterOccurrences', () => {
     expect(filterOccurrences(list, { tab: 'all', hidden: new Set(['n']) })).toHaveLength(1);
   });
 
-  it('zakładka ukrytej kategorii nic nie pokazuje', () => {
-    expect(filterOccurrences(list, { tab: 'n', hidden: new Set(['n']) })).toHaveLength(0);
+  it('zakładka ukrytej kategorii pokazuje jej bloki (zakładka ma pierwszeństwo przed ukryciem)', () => {
+    expect(filterOccurrences(list, { tab: 'n', hidden: new Set(['n']) })).toEqual([
+      { categoryId: 'n' },
+      { categoryId: 'n' },
+    ]);
+  });
+
+  it('zakładka kategorii nie odkrywa innych ukrytych kategorii', () => {
+    expect(filterOccurrences(list, { tab: 'n', hidden: new Set(['p']) })).toHaveLength(2);
   });
 });
 

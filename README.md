@@ -64,6 +64,12 @@ Migracja tworzy tabele (`profiles`, `blocks`, `block_exceptions`, `block_tasks`)
 kolory istniejących bloków zamienia na kategorie o nazwach kolorów (np. „Niebieski”), które możesz potem
 zmienić ołówkiem w menu kalendarza (`supabase db push` uruchamia obie migracje po kolei).
 
+> **Uwaga przy aktualizacji istniejącej instalacji:** migrację `0002_categories.sql` trzeba wdrożyć razem z tym
+> kodem. Stary kod przestaje działać po `0002` (migracja usuwa kolumnę `color`), a nowy kod bez `0002` psuje cały
+> obszar aplikacji (`ensureProfile` → `ensureCategories` czyta tabelę `categories`). Praktycznie: uruchom `0002`
+> w SQL Editor tuż przed wdrożeniem nowego kodu albo zaraz po nim i w tym czasie nie zostawiaj działającej starej
+> wersji. Przerwa potrwa chwilę, bo migracja jest szybka.
+
 ### Krok 5. Uruchom aplikację
 
 ```bash

@@ -1,11 +1,13 @@
 /** Filtr kalendarza: zakładka ('all' albo id kategorii) i zbiór id ukrytych kategorii. */
 export type CalendarFilter = { tab: 'all' | string; hidden: ReadonlySet<string> };
 
-/** Wystąpienia widoczne przy danym filtrze: bez ukrytych kategorii i (gdy wybrano zakładkę) tylko z tej kategorii. */
+/**
+ * Wystąpienia widoczne przy danym filtrze. „Wszystkie” pomija ukryte kategorie;
+ * wybrana zakładka kategorii pokazuje jej bloki nawet wtedy, gdy kategoria jest ukryta.
+ */
 export function filterOccurrences<T extends { categoryId: string }>(list: T[], filter: CalendarFilter): T[] {
-  return list.filter(
-    (o) => !filter.hidden.has(o.categoryId) && (filter.tab === 'all' || o.categoryId === filter.tab),
-  );
+  if (filter.tab !== 'all') return list.filter((o) => o.categoryId === filter.tab);
+  return list.filter((o) => !filter.hidden.has(o.categoryId));
 }
 
 /** Liczba wystąpień po id kategorii (liczniki w liście kategorii). */

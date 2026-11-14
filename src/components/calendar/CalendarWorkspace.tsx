@@ -48,11 +48,12 @@ export function CalendarWorkspace({ timezone, initialCategories, today }: Calend
 
   // Zmiana widoczności od razu w stanie; przy błędzie zapisu cofamy ją i pokazujemy toast.
   async function setVisible(id: string, visible: boolean) {
+    const previous = categories.find((c) => c.id === id)?.visible ?? !visible;
     setCategories((list) => list.map((c) => (c.id === id ? { ...c, visible } : c)));
     try {
       await updateCategory(id, { visible });
     } catch (error) {
-      setCategories((list) => list.map((c) => (c.id === id ? { ...c, visible: !visible } : c)));
+      setCategories((list) => list.map((c) => (c.id === id ? { ...c, visible: previous } : c)));
       toastManager.add({
         type: "error",
         title: "Nie udało się zmienić widoczności kategorii",

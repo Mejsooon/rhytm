@@ -21,3 +21,14 @@ export type HabitHistory = {
   /** Days (YYYY-MM-DD) the habit was checked off. */
   checks: ReadonlySet<string>;
 };
+
+/** HabitHistory as it travels over the wire (Server Actions cannot return a Set). */
+export type HabitHistoryDTO = Omit<HabitHistory, 'checks'> & { checks: string[] };
+
+export function toDTO(habit: HabitHistory): HabitHistoryDTO {
+  return { ...habit, checks: [...habit.checks] };
+}
+
+export function fromDTO(dto: HabitHistoryDTO): HabitHistory {
+  return { ...dto, checks: new Set(dto.checks) };
+}

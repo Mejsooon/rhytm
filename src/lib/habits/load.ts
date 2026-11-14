@@ -2,6 +2,7 @@ import { format, parseISO, subWeeks } from 'date-fns';
 import { createServerClient } from '@/lib/supabase/server';
 import { ensureProfile } from '@/lib/profile';
 import { todayIn } from '@/lib/dates';
+import { assertValidDate } from './rules';
 import type { HabitHistory } from './types';
 
 const STREAK_LOOKBACK_WEEKS = 53;
@@ -22,6 +23,9 @@ export async function loadHabits(
   to: string,
   onlyId?: string,
 ): Promise<{ timezone: string; today: string; habits: HabitHistory[] }> {
+  // from/to come from the client and `from` goes into a PostgREST filter string.
+  assertValidDate(from);
+  assertValidDate(to);
   const profile = await ensureProfile();
   const today = todayIn(profile.timezone, new Date());
   const supabase = await createServerClient();

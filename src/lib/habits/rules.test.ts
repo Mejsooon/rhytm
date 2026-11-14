@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertCheckable, validateHabitInput } from './rules';
+import { assertCheckable, assertValidDate, validateHabitInput } from './rules';
 import type { HabitHistory } from './types';
 
 const habit: HabitHistory = {
@@ -75,5 +75,27 @@ describe('validateHabitInput', () => {
   it('none jest poprawny, nieznany typ odrzucony', () => {
     expect(validateHabitInput({ ...base, type: 'none' }).schedule.type).toBe('none');
     expect(() => validateHabitInput({ ...base, type: 'monthly' })).toThrow('Nieznany harmonogram');
+  });
+});
+
+describe('validateHabitInput - nieprawidłowe dane', () => {
+  it('odrzuca wejście o złym kształcie', () => {
+    const bad = [null, 'x', { name: 5, type: 'daily', weekdays: [], timesPerWeek: null }, { name: 'a', type: 'days', weekdays: 'x', timesPerWeek: null }];
+    for (const input of bad) {
+      expect(() => validateHabitInput(input as never)).toThrow('Nieprawidłowe dane');
+    }
+  });
+});
+
+describe('assertValidDate', () => {
+  it('przyjmuje prawdziwy dzień, także 29 lutego w roku przestępnym', () => {
+    expect(() => assertValidDate('2026-11-14')).not.toThrow();
+    expect(() => assertValidDate('2028-02-29')).not.toThrow();
+  });
+
+  it('odrzuca nieistniejące dni i złe formaty', () => {
+    for (const date of ['2026-02-30', '2026-13-01', '2027-02-29', '2026-1-1', "2026-01-01,archived_at.is.null", '', null, 5]) {
+      expect(() => assertValidDate(date)).toThrow('Nieprawidłowa data');
+    }
   });
 });

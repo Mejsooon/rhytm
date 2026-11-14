@@ -6,12 +6,11 @@ import { createServerClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/profile";
 import { todayIn } from "@/lib/dates";
 import { loadHabits } from "@/lib/habits/load";
-import { assertCheckable, validateHabitInput } from "@/lib/habits/rules";
+import { assertCheckable, assertValidDate, validateHabitInput } from "@/lib/habits/rules";
 import { scheduleOn } from "@/lib/habits/schedule";
 import { toDTO, type HabitHistoryDTO } from "@/lib/habits/types";
 
 const UNIQUE_VIOLATION = "23505";
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 type HabitInput = { name: string; type: string; weekdays: number[]; timesPerWeek: number | null };
 
@@ -39,8 +38,9 @@ export async function createHabit(input: HabitInput): Promise<HabitHistoryDTO> {
   });
   if (version.error) {
     // Bez harmonogramu nawyk byłby sierotą, więc usuwamy wiersz nawyku.
-    await supabase.from("habits").delete().eq("id", habit.data.id);
-    throw new Error(`Nie udało się zapisać harmonogramu nawyku: ${version.error.message}`);
+    const cleanup = await supabase.from("habits").delete().eq("id", habit.data.id);
+    const cleanupNote = cleanup.error ? ` Nie udało się też usunąć nawyku bez harmonogramu: ${cleanup.error.message}` : "";
+    throw new Error(`Nie udało się zapisać harmonogramu nawyku: ${version.error.message}.${cleanupNote}`);
   }
 
   return toDTO({
@@ -106,7 +106,8 @@ export async function archiveHabit(id: string): Promise<void> {
 // Odhacza (done = true) albo cofa odhaczenie (done = false) nawyku w danym dniu.
 // Ponowne odhaczenie dnia, który już jest odhaczony, nie jest błędem.
 export async function setHabitCheck(habitId: string, date: string, done: boolean): Promise<void> {
-  if (!DATE_PATTERN.test(date)) throw new Error("Nieprawidłowa data");
+  if (typeof done !== "boolean") throw new Error("Nieprawidłowe dane");
+  assertValidDate(date);
   const supabase = await createServerClient();
   const { today, habits } = await loadHabits(date, date, habitId);
   const habit = habits[0];

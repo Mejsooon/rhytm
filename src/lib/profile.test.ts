@@ -11,22 +11,33 @@ const single = vi.fn(async () => {
 });
 const eq = vi.fn(() => ({ single }));
 const select = vi.fn(() => ({ eq }));
-const from = vi.fn(() => ({ upsert, select }));
+// Kategorie: select(count, head) → { count }, insert → { error }.
+let categoryCount = 0;
+const categoriesSelect = vi.fn(async () => ({ count: categoryCount, error: null }));
+const categoriesInsert = vi.fn(async (_rows: unknown) => {
+  calls.push("insert categories");
+  return { error: null as { code?: string; message: string } | null };
+});
+const from = vi.fn((table: string) =>
+  table === "categories" ? { select: categoriesSelect, insert: categoriesInsert } : { upsert, select },
+);
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: "user_1" }) }));
 vi.mock("@/lib/supabase/server", () => ({ createServerClient: async () => ({ from }) }));
 
-import { ensureProfile } from "@/lib/profile";
+import { ensureCategories, ensureProfile } from "@/lib/profile";
 
 describe("ensureProfile", () => {
   beforeEach(() => {
     calls.length = 0;
+    categoryCount = 1;
     vi.clearAllMocks();
   });
 
   it("najpierw robi idempotentny upsert, potem odczyt", async () => {
     const profile = await ensureProfile();
     expect(calls).toEqual(["upsert", "select"]);
+    expect(categoriesInsert).not.toHaveBeenCalled();
     expect(upsert).toHaveBeenCalledWith({ user_id: "user_1" }, { onConflict: "user_id", ignoreDuplicates: true });
     expect(eq).toHaveBeenCalledWith("user_id", "user_1");
     expect(profile.timezone).toBe("Europe/Warsaw");
@@ -36,5 +47,40 @@ describe("ensureProfile", () => {
     upsert.mockResolvedValueOnce({ error: { message: "boom" } } as never);
     await expect(ensureProfile()).rejects.toThrow("ensureProfile: boom");
     expect(single).not.toHaveBeenCalled();
+  });
+});
+
+describe("ensureCategories", () => {
+  beforeEach(() => {
+    calls.length = 0;
+    categoryCount = 0;
+    vi.clearAllMocks();
+  });
+
+  it("wstawia 4 domyślne jednym insertem, gdy brak kategorii", async () => {
+    await ensureCategories();
+    expect(categoriesInsert).toHaveBeenCalledTimes(1);
+    expect(categoriesInsert).toHaveBeenCalledWith([
+      { name: "Nauka", color: "blue", position: 0 },
+      { name: "Uczelnia", color: "teal", position: 1 },
+      { name: "Praca", color: "gray", position: 2 },
+      { name: "Osobiste", color: "rose", position: 3 },
+    ]);
+  });
+
+  it("nic nie wstawia, gdy użytkownik ma już kategorie", async () => {
+    categoryCount = 2;
+    await ensureCategories();
+    expect(categoriesInsert).not.toHaveBeenCalled();
+  });
+
+  it("błąd unikalności 23505 (równoległe wejście) uznaje za sukces", async () => {
+    categoriesInsert.mockResolvedValueOnce({ error: { code: "23505", message: "dup" } });
+    await expect(ensureCategories()).resolves.toBeUndefined();
+  });
+
+  it("inny błąd insertu jest rzucany", async () => {
+    categoriesInsert.mockResolvedValueOnce({ error: { code: "42501", message: "denied" } });
+    await expect(ensureCategories()).rejects.toThrow("ensureCategories: denied");
   });
 });

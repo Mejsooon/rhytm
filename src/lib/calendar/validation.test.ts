@@ -27,7 +27,7 @@ describe('validateBlockFields', () => {
   it('odrzuca nieznaną kategorię i zły format startu', () => {
     expect(() => validateBlockFields({ categoryId: 'blue' })).toThrow('Nieznana kategoria');
     expect(() => validateBlockFields({ categoryId: '11111111-1111-4111-8111-111111111111' })).not.toThrow();
-    expect(() => validateBlockFields({ categoryId: '11111111-1111-4111-8111-111111111111' })).not.toThrow();
+    expect(() => validateBlockFields({ categoryId: 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA' })).not.toThrow();
     expect(() => validateBlockFields({ startLocal: '2026-11-16 09:00' })).toThrow('Nieprawidłowa data początku');
   });
   it('sprawdza kształt powtarzania', () => {

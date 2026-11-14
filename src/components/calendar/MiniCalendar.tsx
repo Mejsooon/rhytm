@@ -66,6 +66,7 @@ export function MiniCalendar({ month, today, highlight, onPickDate, onMonthChang
                   key={d.date}
                   type="button"
                   aria-label={miniDayLabel(d.date)}
+                  aria-current={isToday ? "date" : undefined}
                   onClick={() => onPickDate(d.date)}
                   className={`mx-auto flex size-6 cursor-pointer items-center justify-center rounded-full border-0 p-0 text-xs ${tone}`}
                 >

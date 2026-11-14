@@ -1,11 +1,14 @@
 import { Suspense } from "react";
-import { MainCalendar } from "@/components/calendar/MainCalendar";
+import { CalendarWorkspace } from "@/components/calendar/CalendarWorkspace";
 import { getProfile } from "../ustawienia/actions";
+import { listCategories } from "./category-actions";
 
-// Strefa czasowa pochodzi z profilu (dane dynamiczne), więc czytamy ją wewnątrz Suspense.
+// Strefa czasowa (z profilu) i kategorie to dane dynamiczne, więc czytamy je wewnątrz Suspense.
+// Najpierw profil: listCategories też go zapewnia, a kolejno nie ścigają się dwa ensureProfile.
 async function Calendar() {
   const profile = await getProfile();
-  return <MainCalendar timezone={profile.timezone} />;
+  const categories = await listCategories();
+  return <CalendarWorkspace timezone={profile.timezone} initialCategories={categories} />;
 }
 
 export default function KalendarzPage() {

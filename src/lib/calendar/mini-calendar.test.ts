@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { miniCalendarWeeks, miniDayLabel, miniHighlight, miniMonthTitle, shiftMonth } from './mini-calendar';
+import { miniCalendarWeeks, miniDayLabel, miniHighlight, miniMonthTitle, periodTitle, shiftMonth } from './mini-calendar';
 
 describe('miniCalendarWeeks', () => {
   it('listopad 2026: 6 wierszy, od pn 26 paź, tydzień ISO 44', () => {
@@ -59,5 +59,24 @@ describe('miniDayLabel', () => {
   it('data po polsku w dopełniaczu', () => {
     expect(miniDayLabel('2026-11-18')).toBe('18 listopada 2026');
     expect(miniDayLabel('2027-01-01')).toBe('1 stycznia 2027');
+  });
+});
+
+describe('periodTitle', () => {
+  it('tydzień w jednym miesiącu', () => {
+    expect(periodTitle('timeGridWeek', '2026-11-16')).toBe('16 – 22 lis 2026 · tydzień 47');
+  });
+
+  it('tydzień na przełomie miesięcy', () => {
+    expect(periodTitle('timeGridWeek', '2026-10-26')).toBe('26 paź – 1 lis 2026 · tydzień 44');
+  });
+
+  it('tydzień na przełomie roku ma numer 53', () => {
+    expect(periodTitle('timeGridWeek', '2026-12-28')).toBe('28 gru 2026 – 3 sty 2027 · tydzień 53');
+  });
+
+  it('dzień i miesiąc', () => {
+    expect(periodTitle('timeGridDay', '2026-11-18')).toBe('Środa, 18 listopada 2026');
+    expect(periodTitle('dayGridMonth', '2026-11-01')).toBe('Listopad 2026');
   });
 });

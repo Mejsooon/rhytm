@@ -4,16 +4,46 @@ begin;
 -- ===== Migracja danych legacy_u (jako postgres, bez RLS) =====
 do $$
 begin
-  if (select count(*) from categories where user_id = 'legacy_u') <> 4 then
-    raise exception 'FAIL: legacy_u nie ma dokładnie 4 kategorii';
+  if (select count(*) from categories where user_id = 'legacy_u') <> 6 then
+    raise exception 'FAIL: legacy_u nie ma dokładnie 6 kategorii';
   end if;
-  if (select array_agg(color order by color) from categories where user_id = 'legacy_u')
-     is distinct from array['blue','green','rose','violet'] then
-    raise exception 'FAIL: kolory kategorii legacy_u inne niż {blue, rose, violet, green}';
+  -- kolejność = position, a position wg palety: blue, gray, rose, orange, violet, green
+  if (select array_agg(color order by position) from categories where user_id = 'legacy_u')
+     is distinct from array['blue','gray','rose','orange','violet','green'] then
+    raise exception 'FAIL: kolejność (position) kategorii legacy_u niezgodna z paletą';
   end if;
-  if (select array_agg(name order by color) from categories where user_id = 'legacy_u')
-     is distinct from array['Niebieski','Zielony','Różowy','Fioletowy'] then
+  if (select array_agg(position order by position) from categories where user_id = 'legacy_u')
+     is distinct from array[0,1,2,3,4,5] then
+    raise exception 'FAIL: position kategorii legacy_u nie jest 0..5';
+  end if;
+  if (select array_agg(name order by position) from categories where user_id = 'legacy_u')
+     is distinct from array['Niebieski','Szary','Różowy','Pomarańczowy','Fioletowy','Zielony'] then
     raise exception 'FAIL: nazwy kategorii legacy_u niepoprawne';
+  end if;
+  if (select c.color from blocks as b join categories as c on c.id = b.category_id
+      where b.id = '00000000-0000-0000-0000-0000000000b4') is distinct from 'gray' then
+    raise exception 'FAIL: blok gray nie wskazuje na gray';
+  end if;
+  if (select c.color from blocks as b join categories as c on c.id = b.category_id
+      where b.id = '00000000-0000-0000-0000-0000000000b5') is distinct from 'orange' then
+    raise exception 'FAIL: blok orange nie wskazuje na orange';
+  end if;
+  if (select category_id from block_exceptions
+      where block_id = '00000000-0000-0000-0000-0000000000b2') is not null then
+    raise exception 'FAIL: wyjątek bez koloru dostał kategorię';
+  end if;
+  -- drugi użytkownik: tylko własne kategorie (rose, gray z nieznanego), bloki wskazują na jego kategorie
+  if (select array_agg(color order by position) from categories where user_id = 'legacy_v')
+     is distinct from array['gray','rose'] then
+    raise exception 'FAIL: kategorie legacy_v niepoprawne';
+  end if;
+  if exists (select 1 from blocks as b join categories as c on c.id = b.category_id
+             where c.user_id <> b.user_id) then
+    raise exception 'FAIL: blok wskazuje na kategorię innego użytkownika';
+  end if;
+  if (select c.color from blocks as b join categories as c on c.id = b.category_id
+      where b.id = '00000000-0000-0000-0000-0000000000b7') is distinct from 'gray' then
+    raise exception 'FAIL: nieznany kolor nie zamienił się w gray';
   end if;
   if (select c.color from blocks as b join categories as c on c.id = b.category_id
       where b.id = '00000000-0000-0000-0000-0000000000b2') is distinct from 'rose' then

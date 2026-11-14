@@ -2,6 +2,11 @@
 insert into blocks (id, user_id, title, color, start_local, duration_min, timezone) values
   ('00000000-0000-0000-0000-0000000000b1', 'legacy_u', 'Stary niebieski', 'blue',   '2026-11-16 09:00', 60, 'Europe/Warsaw'),
   ('00000000-0000-0000-0000-0000000000b2', 'legacy_u', 'Stary czerwony',  'red',    '2026-11-16 10:00', 60, 'Europe/Warsaw'),
-  ('00000000-0000-0000-0000-0000000000b3', 'legacy_u', 'Stary fioletowy', 'purple', '2026-11-16 11:00', 60, 'Europe/Warsaw');
-insert into block_exceptions (block_id, occurrence_date, color)
-values ('00000000-0000-0000-0000-0000000000b1', '2026-11-23', 'green');
+  ('00000000-0000-0000-0000-0000000000b3', 'legacy_u', 'Stary fioletowy', 'purple', '2026-11-16 11:00', 60, 'Europe/Warsaw'),
+  ('00000000-0000-0000-0000-0000000000b4', 'legacy_u', 'Stary szary',     'gray',   '2026-11-16 12:00', 60, 'Europe/Warsaw'),
+  ('00000000-0000-0000-0000-0000000000b5', 'legacy_u', 'Stary pomarańcz', 'orange', '2026-11-16 13:00', 60, 'Europe/Warsaw'),
+  ('00000000-0000-0000-0000-0000000000b6', 'legacy_v', 'Cudzy czerwony',  'red',    '2026-11-16 09:00', 60, 'Europe/Warsaw'),
+  ('00000000-0000-0000-0000-0000000000b7', 'legacy_v', 'Cudzy nieznany',  'bogus',  '2026-11-16 10:00', 60, 'Europe/Warsaw');
+insert into block_exceptions (block_id, occurrence_date, color) values
+  ('00000000-0000-0000-0000-0000000000b1', '2026-11-23', 'green'),
+  ('00000000-0000-0000-0000-0000000000b2', '2026-11-23', null);

@@ -25,38 +25,39 @@ create policy categories_own on categories for all to authenticated
 alter table blocks add column category_id uuid null references categories (id) on delete restrict;
 alter table block_exceptions add column category_id uuid null references categories (id) on delete restrict;
 
-with legacy as (
-  select b.user_id,
-         case b.color when 'red' then 'rose' when 'purple' then 'violet'
-           when 'blue' then 'blue' when 'green' then 'green'
-           when 'orange' then 'orange' else 'gray' end as color
-  from blocks as b
-  union
-  select b.user_id,
-         case e.color when 'red' then 'rose' when 'purple' then 'violet'
-           when 'blue' then 'blue' when 'green' then 'green'
-           when 'orange' then 'orange' else 'gray' end as color
-  from block_exceptions as e
-  join blocks as b on b.id = e.block_id
-  where e.color is not null
-)
+-- Jedyne miejsce mapowania starych kolorów (nieznane i null -> gray) oraz kolejności/etykiet palety
+create temp table legacy_color_map (old_color text primary key, new_color text not null) on commit drop;
+insert into legacy_color_map (old_color, new_color) values
+  ('blue','blue'), ('green','green'), ('orange','orange'), ('gray','gray'),
+  ('red','rose'), ('purple','violet');
+
+create temp table palette (color text primary key, label text not null, pos int not null) on commit drop;
+insert into palette (color, label, pos) values
+  ('blue','Niebieski',0), ('teal','Morski',1), ('gray','Szary',2), ('rose','Różowy',3),
+  ('orange','Pomarańczowy',4), ('violet','Fioletowy',5), ('green','Zielony',6), ('amber','Bursztynowy',7);
+
+create temp table legacy_pairs on commit drop as
+select b.user_id, coalesce(m.new_color, 'gray') as color
+from blocks as b
+left join legacy_color_map as m on m.old_color = b.color
+union
+select b.user_id, coalesce(m.new_color, 'gray')
+from block_exceptions as e
+join blocks as b on b.id = e.block_id
+left join legacy_color_map as m on m.old_color = e.color
+where e.color is not null;
+
 insert into categories (user_id, name, color, position)
-select l.user_id,
-       case l.color when 'blue' then 'Niebieski' when 'teal' then 'Morski'
-         when 'gray' then 'Szary' when 'rose' then 'Różowy'
-         when 'orange' then 'Pomarańczowy' when 'violet' then 'Fioletowy'
-         when 'green' then 'Zielony' else 'Bursztynowy' end,
-       l.color,
-       (row_number() over (partition by l.user_id order by l.color)) - 1
-from legacy as l;
+select lp.user_id, p.label, lp.color,
+       (row_number() over (partition by lp.user_id order by p.pos)) - 1
+from legacy_pairs as lp
+join palette as p on p.color = lp.color;
 
 update blocks as b
 set category_id = c.id
 from categories as c
 where c.user_id = b.user_id
-  and c.color = case b.color when 'red' then 'rose' when 'purple' then 'violet'
-    when 'blue' then 'blue' when 'green' then 'green'
-    when 'orange' then 'orange' else 'gray' end;
+  and c.color = coalesce((select m.new_color from legacy_color_map as m where m.old_color = b.color), 'gray');
 
 update block_exceptions as e
 set category_id = c.id
@@ -64,9 +65,7 @@ from blocks as b, categories as c
 where b.id = e.block_id
   and e.color is not null
   and c.user_id = b.user_id
-  and c.color = case e.color when 'red' then 'rose' when 'purple' then 'violet'
-    when 'blue' then 'blue' when 'green' then 'green'
-    when 'orange' then 'orange' else 'gray' end;
+  and c.color = coalesce((select m.new_color from legacy_color_map as m where m.old_color = e.color), 'gray');
 
 alter table blocks alter column category_id set not null;
 alter table blocks drop column color;

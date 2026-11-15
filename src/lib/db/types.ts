@@ -198,6 +198,8 @@ export type Database = {
           position: number;
           archived_at: string | null;
           created_at: string | null;
+          remind_at: string | null;
+          last_reminded_on: string | null;
         };
         Insert: {
           id?: string;
@@ -206,6 +208,8 @@ export type Database = {
           position?: number;
           archived_at?: string | null;
           created_at?: string | null;
+          remind_at?: string | null;
+          last_reminded_on?: string | null;
         };
         Update: {
           id?: string;
@@ -214,6 +218,8 @@ export type Database = {
           position?: number;
           archived_at?: string | null;
           created_at?: string | null;
+          remind_at?: string | null;
+          last_reminded_on?: string | null;
         };
         Relationships: [];
       };
@@ -272,6 +278,33 @@ export type Database = {
           },
         ];
       };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       sleep_logs: {
         Row: {
           user_id: string;
@@ -301,7 +334,12 @@ export type Database = {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      save_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string };
+        Returns: undefined;
+      };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };

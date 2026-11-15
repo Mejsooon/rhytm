@@ -76,6 +76,7 @@ export async function loadHabits(
       createdOn: schedules[0].validFrom, // the habit's first version starts the day it was created
       archivedOn: row.archived_at,
       schedules,
+      remindAt: row.remind_at === null ? null : row.remind_at.slice(0, 5), // Postgres returns HH:mm:ss
       checks: checkDates.get(row.id) ?? new Set(),
     });
   }

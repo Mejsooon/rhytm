@@ -23,7 +23,9 @@ export function validateHabitInput(input: {
   type: string;
   weekdays: number[];
   timesPerWeek: number | null;
-}): { name: string; schedule: Omit<HabitSchedule, 'validFrom'> } {
+  /** 'HH:mm' or null; callers that do not pass it mean "no reminder". */
+  remindAt?: string | null;
+}): { name: string; schedule: Omit<HabitSchedule, 'validFrom'>; remindAt: string | null } {
   // Server Actions receive unchecked data from the client.
   if (typeof input !== 'object' || input === null || typeof input.name !== 'string' || !Array.isArray(input.weekdays)) {
     throw new Error('Nieprawidłowe dane');
@@ -32,8 +34,15 @@ export function validateHabitInput(input: {
   if (name.length === 0) throw new Error('Nazwa nie może być pusta');
   if (name.length > 60) throw new Error('Nazwa może mieć najwyżej 60 znaków');
 
+  // Exactly 'HH:mm' (the database stores minutes only); 'none' habits never remind.
+  const rawRemindAt = input.remindAt ?? null;
+  if (rawRemindAt !== null && (typeof rawRemindAt !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(rawRemindAt))) {
+    throw new Error('Nieprawidłowa godzina przypomnienia');
+  }
+  const remindAt = input.type === 'none' ? null : rawRemindAt;
+
   if (input.type === 'daily' || input.type === 'none') {
-    return { name, schedule: { type: input.type, weekdays: [], timesPerWeek: null } };
+    return { name, schedule: { type: input.type, weekdays: [], timesPerWeek: null }, remindAt };
   }
 
   if (input.type === 'days') {
@@ -41,7 +50,7 @@ export function validateHabitInput(input: {
     const valid = weekdays.length >= 1 && weekdays.every((day) => Number.isInteger(day) && day >= 1 && day <= 7);
     // Duplicates in the input mean a malformed request, not just a redundant one.
     if (!valid || weekdays.length !== input.weekdays.length) throw new Error('Wybierz co najmniej jeden dzień');
-    return { name, schedule: { type: 'days', weekdays, timesPerWeek: null } };
+    return { name, schedule: { type: 'days', weekdays, timesPerWeek: null }, remindAt };
   }
 
   if (input.type === 'weekly') {
@@ -49,7 +58,7 @@ export function validateHabitInput(input: {
     if (times === null || !Number.isInteger(times) || times < 1 || times > 7) {
       throw new Error('Liczba razy w tygodniu musi być od 1 do 7');
     }
-    return { name, schedule: { type: 'weekly', weekdays: [], timesPerWeek: times } };
+    return { name, schedule: { type: 'weekly', weekdays: [], timesPerWeek: times }, remindAt };
   }
 
   throw new Error('Nieznany harmonogram');

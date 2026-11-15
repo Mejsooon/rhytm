@@ -9,7 +9,18 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then
     create role authenticated nologin;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then
+    create role service_role nologin;
+  end if;
 end $$;
+
+-- Supabase Vault: na Supabase to widok; funkcje czytają tylko name i decrypted_secret.
+-- anon/authenticated nie dostają żadnych uprawnień (czyta go funkcja SECURITY DEFINER).
+create schema vault;
+create table vault.decrypted_secrets (
+  name text primary key,
+  decrypted_secret text
+);
 
 create schema auth;
 create function auth.jwt() returns jsonb

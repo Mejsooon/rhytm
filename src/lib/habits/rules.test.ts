@@ -8,6 +8,7 @@ const habit: HabitHistory = {
   createdOn: '2026-11-05',
   archivedOn: '2026-11-12',
   schedules: [{ validFrom: '2026-11-05', type: 'daily', weekdays: [], timesPerWeek: null }],
+  remindAt: null,
   checks: new Set(),
 };
 const active: HabitHistory = { ...habit, archivedOn: null };
@@ -39,6 +40,7 @@ describe('validateHabitInput', () => {
     expect(validateHabitInput({ ...base, name: '  Bieg ' })).toEqual({
       name: 'Bieg',
       schedule: { type: 'daily', weekdays: [], timesPerWeek: null },
+      remindAt: null,
     });
   });
 
@@ -75,6 +77,28 @@ describe('validateHabitInput', () => {
   it('none jest poprawny, nieznany typ odrzucony', () => {
     expect(validateHabitInput({ ...base, type: 'none' }).schedule.type).toBe('none');
     expect(() => validateHabitInput({ ...base, type: 'monthly' })).toThrow('Nieznany harmonogram');
+  });
+});
+
+describe('validateHabitInput - godzina przypomnienia', () => {
+  const base = { name: 'Bieg', type: 'daily', weekdays: [], timesPerWeek: null };
+
+  it('przyjmuje HH:mm, null i brak pola (jako null)', () => {
+    expect(validateHabitInput({ ...base, remindAt: '07:30' }).remindAt).toBe('07:30');
+    expect(validateHabitInput({ ...base, remindAt: '00:00' }).remindAt).toBe('00:00');
+    expect(validateHabitInput({ ...base, remindAt: '23:59' }).remindAt).toBe('23:59');
+    expect(validateHabitInput({ ...base, remindAt: null }).remindAt).toBeNull();
+    expect(validateHabitInput(base).remindAt).toBeNull();
+  });
+
+  it('odrzuca złe formaty i liczby', () => {
+    for (const remindAt of ['7:30', '24:00', '07:60', '07:30:00', '', 'abc', 730]) {
+      expect(() => validateHabitInput({ ...base, remindAt: remindAt as never })).toThrow('Nieprawidłowa godzina przypomnienia');
+    }
+  });
+
+  it('typ none zeruje godzinę', () => {
+    expect(validateHabitInput({ ...base, type: 'none', remindAt: '08:00' }).remindAt).toBeNull();
   });
 });
 

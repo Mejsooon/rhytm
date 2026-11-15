@@ -25,6 +25,7 @@ function habit(overrides: {
     createdOn: overrides.createdOn ?? '2026-11-01',
     archivedOn: overrides.archivedOn ?? null,
     schedules: overrides.schedules ?? [daily],
+    remindAt: null,
     checks: new Set(overrides.checks ?? []),
   };
 }

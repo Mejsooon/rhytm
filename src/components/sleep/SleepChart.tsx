@@ -49,7 +49,9 @@ export function SleepChart({ logs, today, timezone, goalMin }: SleepChartProps) 
     <section aria-label="Wykres snu" className="flex flex-col gap-3.5 rounded-xl border border-[#EAEAE8] bg-white p-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <strong className="text-sm font-medium">{TITLES[range]}</strong>
-        <span className="text-xs text-[#9B9A97]">{CAPTIONS[range]}</span>
+        <span className="text-xs text-[#9B9A97]">
+          {CAPTIONS[range]} · <span className="text-[#7C6BD6]">cel {formatMinutes(goalMin)}</span>
+        </span>
         <div className="ms-auto">
           <RangeSwitch value={range} onChange={setRange} aria-label="Zakres wykresu snu" />
         </div>
@@ -60,23 +62,18 @@ export function SleepChart({ logs, today, timezone, goalMin }: SleepChartProps) 
       ) : (
         <>
           <div className="flex gap-2">
-            <div
-              aria-hidden="true"
-              className="flex h-[180px] w-7 shrink-0 flex-col justify-between text-end text-[11px] leading-none text-[#9B9A97]"
-            >
-              <span>10 h</span>
-              <span>5 h</span>
-              <span>0</span>
+            {/* Każdy podpis osi stoi środkiem dokładnie na swojej wysokości, tak jak linia celu. */}
+            <div aria-hidden="true" className="relative h-[180px] w-9 shrink-0 text-end text-[11px] leading-none text-[#9B9A97]">
+              <span className="absolute end-0 top-0 -translate-y-1/2">10 h</span>
+              {Math.abs(goalMin - 300) >= 60 && <span className="absolute end-0 top-1/2 -translate-y-1/2">5 h</span>}
+              <span className="absolute end-0 top-full -translate-y-1/2">0</span>
+              <span className="absolute end-0 -translate-y-1/2 font-medium text-[#7C6BD6]" style={{ top: goalTop }}>
+                {formatMinutes(goalMin)}
+              </span>
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <div className="relative h-[180px] border-b border-[#EAEAE8]">
                 <div className="absolute inset-x-0 border-t border-dashed border-[#CFC8F0]" style={{ top: goalTop }} />
-                <span
-                  className="absolute end-0 z-10 -translate-y-full bg-white ps-1 pb-0.5 text-[11px] leading-none text-[#9B9A97]"
-                  style={{ top: goalTop }}
-                >
-                  cel {formatMinutes(goalMin)}
-                </span>
                 <div role="list" aria-label="Godziny snu" className="absolute inset-0 flex items-end" style={{ gap }}>
                   {bars.map((bar) => (
                     // Cała kolumna niesie podpis, więc najeżdżanie działa też nad pustym słupkiem.

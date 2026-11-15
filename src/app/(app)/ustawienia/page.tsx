@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getProfile } from "./actions";
+import { PushToggle } from "@/components/settings/PushToggle";
 import { SettingsTabs } from "./profile-form";
 
 // Dane profilu są dynamiczne, więc czytamy je wewnątrz Suspense.
@@ -17,6 +18,10 @@ export default function UstawieniaPage() {
       <Suspense fallback={<p className="text-muted-foreground">Ładowanie…</p>}>
         <Settings />
       </Suspense>
+      <section className="mt-8">
+        <h2 className="mb-3 font-heading text-lg font-bold tracking-tight">Powiadomienia</h2>
+        <PushToggle />
+      </section>
     </main>
   );
 }

@@ -123,13 +123,18 @@ i wysyła je (`pg_net`) do endpointu `/api/cron/przypomnienia` na Vercelu, a ten
 3. **Clerk:** jeśli instancja tego wymaga (np. produkcyjna), dodaj domenę z Vercela w Clerk Dashboard →
    **Domains**.
 4. **Supabase** (SQL Editor / Dashboard), po kolei:
-   1. zastosuj migrację `supabase/migrations/0004_habit_reminders.sql` (wklej plik i **Run**; może być już zastosowana);
+   1. sprawdź, czy migracja `0004` jest już zastosowana: `select to_regclass('public.push_subscriptions');` zwraca
+      nazwę tabeli, gdy jest (wtedy pomiń ten punkt), albo `null`, gdy nie. Tylko wtedy wklej plik
+      `supabase/migrations/0004_habit_reminders.sql` i **Run** (migracja nie jest powtarzalna);
    2. **Database → Extensions:** włącz `pg_cron` i `pg_net`;
    3. utwórz sekrety Vault (wartości wpisz sam; `rhytm_cron_secret` = ta sama wartość co `CRON_SECRET`, adres bez `/` na końcu):
       ```sql
       select vault.create_secret('<CRON_SECRET>', 'rhytm_cron_secret');
       select vault.create_secret('https://<adres-na-vercelu>', 'rhytm_app_url');
       ```
+      `vault.create_secret` zgłasza błąd, gdy sekret o tej nazwie już istnieje. Przy ponownym ustawieniu użyj
+      `select vault.update_secret((select id from vault.secrets where name = 'rhytm_cron_secret'), '<nowa wartość>');`
+      albo edytuj sekret w Dashboard (Project Settings → Vault);
    4. uruchom `supabase/setup/przypomnienia-cron.sql` (można go uruchomić ponownie, np. po zmianie harmonogramu).
 5. **Na telefonie:** otwórz adres aplikacji. Na iPhonie (iOS 16.4+) powiadomienia działają dopiero po dodaniu
    aplikacji do ekranu głównego: Udostępnij → **Do ekranu początkowego**, i otwarciu jej stamtąd. Wejdź w
@@ -140,7 +145,12 @@ i wysyła je (`pg_net`) do endpointu `/api/cron/przypomnienia` na Vercelu, a ten
    select * from net._http_response order by created desc limit 5;
    ```
    Pierwsze pokazuje, czy job działa i czy kończy się błędem; drugie, jaką odpowiedź zwrócił endpoint
-   (`{"sent":…,"failed":…,"removed":…}`, kod 401 = niezgodny `CRON_SECRET` w Vault i na Vercelu).
+   (`{"sent":…,"failed":…,"removed":…}`; `status_code` 401 = niezgodny `CRON_SECRET` w Vault i na Vercelu;
+   `status_code` null z wypełnionym `error_msg` = przekroczony czas albo adres `rhytm_app_url` nieosiągalny).
+
+   > **Uwaga:** `pg_net` tylko kolejkuje żądanie, a nawyk jest oznaczany jako przypomniany w chwili zakolejkowania,
+   > nie dostarczenia. Jeśli Vercel nie działa albo zwraca 401/5xx, przypomnienie tego nawyku nie zostanie tego dnia
+   > ponowione, a jedyny ślad jest w `net._http_response` (przechowywana ok. 6 godzin).
 
 ---
 

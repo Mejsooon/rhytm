@@ -6,8 +6,14 @@
 --   2. Utwórz sekrety w Vault (jednorazowo, wartości wpisujesz sam, nigdy ich nie wklejaj do repo ani czatu):
 --        select vault.create_secret('<ta sama wartość co CRON_SECRET w Vercelu>', 'rhytm_cron_secret');
 --        select vault.create_secret('https://<adres aplikacji na Vercelu>', 'rhytm_app_url');
---      Adres bez ukośnika na końcu. Zmiana wartości później: vault.update_secret(...) albo edycja w Dashboard → Vault.
+--      Adres bez ukośnika na końcu. Zmiana wartości później: vault.update_secret(...) albo edycja w Dashboard → Vault (create_secret zgłasza błąd, gdy nazwa już istnieje).
 --   3. Uruchom ten plik. Można go uruchamiać wielokrotnie.
+--
+-- UWAGA o dostarczaniu: claim_due_habit_reminders i net.http_post zatwierdzają się razem, a pg_net tylko
+-- ustawia żądanie w kolejce. Nawyk jest więc oznaczany jako przypomniany w chwili zakolejkowania, nie dostarczenia.
+-- Gdy Vercel nie działa, żądanie przekroczy czas albo odpowiedź to 401/5xx (zły CRON_SECRET, zły rhytm_app_url,
+-- brak wdrożenia), przypomnienie tego nawyku NIE jest ponawiane tego dnia. Jedyny ślad to net._http_response
+-- (domyślnie przechowywana ok. 6 godzin).
 --
 -- Co robi job: co minutę woła public.claim_due_habit_reminders(now()) (zwraca nawyki, których przypomnienie
 -- właśnie wypada, i oznacza je jako przypomniane) i wysyła wynik POST-em do /api/cron/przypomnienia.

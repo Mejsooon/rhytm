@@ -42,8 +42,14 @@ language sql
 security definer
 set search_path = ''
 as $$
+  -- profiles.timezone to wolny tekst edytowalny przez użytkownika: nieznana strefa rzuciłaby
+  -- błędem w "at time zone" i zablokowała przypomnienia wszystkim, więc takie profile pomijamy.
+  -- Strażnik jest w CASE (a nie tylko w WHERE), bo planer może policzyć wyrażenie przed filtrem.
   with local_now as (
-    select p.user_id, (p_now at time zone p.timezone) as local_ts
+    select p.user_id,
+      case when p.timezone in (select tzn.name from pg_catalog.pg_timezone_names as tzn)
+        then p_now at time zone p.timezone
+      end as local_ts
     from public.profiles as p
   ),
   due as (
@@ -58,7 +64,10 @@ as $$
       limit 1
     ) as sch on true
     where h.remind_at is not null
-      -- okno liczone na znacznikach czasu, żeby 23:50 + 15 min nie zawijało się przez północ
+      and ln.local_ts is not null
+      -- okno liczone na znacznikach czasu, żeby 23:50 + 15 min nie zawijało się przez północ;
+      -- remind_at w godzinie pominiętej przy przejściu na czas letni (np. 02:30 w Warszawie)
+      -- nie wypada tego dnia, bo czas lokalny nigdy nie trafia w okno
       and ln.local_ts >= ln.local_ts::date + h.remind_at
       and ln.local_ts < ln.local_ts::date + h.remind_at + interval '15 minutes'
       and h.last_reminded_on is distinct from ln.local_ts::date
@@ -129,5 +138,33 @@ $$;
 revoke execute on function public.remove_push_subscriptions(text, text[])
   from public, authenticated, service_role;
 grant execute on function public.remove_push_subscriptions(text, text[]) to anon;
+
+-- Zapisuje subskrypcję przeglądarki dla zalogowanego użytkownika. Endpoint jest unikalny globalnie,
+-- a RLS ukrywa cudze wiersze, więc gdy w tej samej przeglądarce zaloguje się inny użytkownik,
+-- funkcja przejmuje endpoint: usuwa jego dotychczasowy wiersz (czyjkolwiek) i wstawia nowy.
+create function public.save_push_subscription(p_endpoint text, p_p256dh text, p_auth text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id text := (select auth.jwt()->>'sub');
+begin
+  if v_user_id is null then
+    raise exception 'unauthorized';
+  end if;
+
+  delete from public.push_subscriptions as ps
+  where ps.endpoint = p_endpoint;
+
+  insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+  values (v_user_id, p_endpoint, p_p256dh, p_auth);
+end
+$$;
+
+revoke execute on function public.save_push_subscription(text, text, text)
+  from public, anon, service_role;
+grant execute on function public.save_push_subscription(text, text, text) to authenticated;
 
 commit;

@@ -2,11 +2,13 @@
 begin;
 
 -- ===== dane (jako właściciel bazy, z jawnym user_id) =====
-insert into profiles (user_id, timezone) values ('u1', 'Europe/Warsaw'), ('u2', 'Europe/Warsaw');
+-- u3 ma nieznaną strefę (profiles.timezone to wolny tekst): nie może zablokować przypomnień innym
+insert into profiles (user_id, timezone) values ('u1', 'Europe/Warsaw'), ('u2', 'Europe/Warsaw'), ('u3', 'X/Y');
 
 insert into push_subscriptions (user_id, endpoint, p256dh, auth) values
   ('u1', 'https://push.example/u1-telefon', 'p256dh-1', 'auth-1'),
-  ('u1', 'https://push.example/u1-laptop', 'p256dh-2', 'auth-2');
+  ('u1', 'https://push.example/u1-laptop', 'p256dh-2', 'auth-2'),
+  ('u3', 'https://push.example/u3-telefon', 'p256dh-3', 'auth-3');
 
 insert into vault.decrypted_secrets (name, decrypted_secret) values ('rhytm_cron_secret', 'dobry-sekret');
 
@@ -20,7 +22,8 @@ insert into habits (id, user_id, name, remind_at, archived_at) values
   ('00000000-0000-0000-0000-00000000000e', 'u1', 'E', '08:00', null),
   ('00000000-0000-0000-0000-00000000000f', 'u1', 'F', '08:00', '2026-11-01'),
   ('00000000-0000-0000-0000-000000000010', 'u1', 'G', '08:00', null),
-  ('00000000-0000-0000-0000-000000000020', 'u2', 'U2', '08:00', null);
+  ('00000000-0000-0000-0000-000000000020', 'u2', 'U2', '08:00', null),
+  ('00000000-0000-0000-0000-000000000030', 'u3', 'U3', '08:00', null);
 
 insert into habit_schedules (habit_id, valid_from, schedule_type, weekdays, times_per_week) values
   ('00000000-0000-0000-0000-00000000000a', '2026-01-01', 'daily', null, null),
@@ -30,7 +33,8 @@ insert into habit_schedules (habit_id, valid_from, schedule_type, weekdays, time
   ('00000000-0000-0000-0000-00000000000e', '2026-01-01', 'daily', null, null),
   ('00000000-0000-0000-0000-00000000000f', '2026-01-01', 'daily', null, null),
   ('00000000-0000-0000-0000-000000000010', '2026-12-01', 'daily', null, null),
-  ('00000000-0000-0000-0000-000000000020', '2026-01-01', 'daily', null, null);
+  ('00000000-0000-0000-0000-000000000020', '2026-01-01', 'daily', null, null),
+  ('00000000-0000-0000-0000-000000000030', '2026-01-01', 'daily', null, null);
 
 insert into habit_checks (habit_id, date) values
   ('00000000-0000-0000-0000-00000000000c', '2026-11-16'),
@@ -57,6 +61,9 @@ begin
   end if;
   if (select last_reminded_on from habits where id = '00000000-0000-0000-0000-000000000020') is not null then
     raise exception 'FAIL: nawyk u2 (bez subskrypcji) oznaczony jako przypomniany';
+  end if;
+  if (select last_reminded_on from habits where id = '00000000-0000-0000-0000-000000000030') is not null then
+    raise exception 'FAIL: nawyk u3 (nieznana strefa) oznaczony jako przypomniany';
   end if;
 end $$;
 
@@ -214,6 +221,54 @@ begin
     raise exception 'FAIL: u1 nie widzi dokładnie swojej 1 pozostałej subskrypcji';
   end if;
 end $$;
+
+-- ===== save_push_subscription: przejęcie endpointu przez innego użytkownika =====
+do $$
+begin
+  perform save_push_subscription('https://push.example/wspolny', 'p-u1', 'a-u1');
+end $$;
+set local request.jwt.claims = '{"sub":"u2","role":"authenticated"}';
+do $$
+begin
+  perform save_push_subscription('https://push.example/wspolny', 'p-u2', 'a-u2');
+end $$;
+set local request.jwt.claims = '{"role":"authenticated"}';
+do $$
+begin
+  begin
+    perform save_push_subscription('https://push.example/bez-sub', 'p', 'a');
+    raise exception 'FAIL: zapis subskrypcji bez sub przyjęty';
+  exception when raise_exception then
+    if sqlerrm <> 'unauthorized' then raise; end if;
+  end;
+end $$;
+reset role;
+
+do $$
+begin
+  if (select count(*) from push_subscriptions where endpoint = 'https://push.example/wspolny') <> 1 then
+    raise exception 'FAIL: wspólny endpoint nie ma dokładnie 1 wiersza';
+  end if;
+  if (select user_id || '/' || p256dh || '/' || auth from push_subscriptions
+      where endpoint = 'https://push.example/wspolny') is distinct from 'u2/p-u2/a-u2' then
+    raise exception 'FAIL: wspólny endpoint nie należy do u2 z jego kluczami';
+  end if;
+  if exists (select 1 from push_subscriptions where endpoint = 'https://push.example/bez-sub') then
+    raise exception 'FAIL: zapisano subskrypcję bez sub';
+  end if;
+end $$;
+
+set local role anon;
+do $$
+begin
+  begin
+    perform save_push_subscription('https://push.example/anon', 'p', 'a');
+    raise exception 'FAIL: anon wywołał save_push_subscription';
+  exception when insufficient_privilege then
+    null; -- oczekiwane
+  end;
+end $$;
+reset role;
 
 do $$ begin raise notice 'REMINDERS OK'; end $$;
 rollback;

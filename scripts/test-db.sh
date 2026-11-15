@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Odtwarza jednorazową bazę, nakłada shim Supabase, migracje, dane legacy, testy RLS i kategorii.
+# Odtwarza jednorazową bazę, nakłada shim Supabase, migracje, dane legacy, testy RLS, kategorii, nawyków i przypomnień.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,3 +23,4 @@ done
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/rls.test.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/categories.test.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/habits_sleep.test.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/reminders.test.sql

@@ -18,6 +18,8 @@ export type HabitHistory = {
   /** Day the habit was archived (YYYY-MM-DD); it no longer counts from that day. */
   archivedOn: string | null;
   schedules: HabitSchedule[];
+  /** Reminder time as 'HH:mm' in the profile timezone, or null for no reminder. */
+  remindAt: string | null;
   /** Days (YYYY-MM-DD) the habit was checked off. */
   checks: ReadonlySet<string>;
 };

@@ -16,7 +16,7 @@ const weekly3: HabitSchedule = { validFrom: '2026-11-01', type: 'weekly', weekda
 const none: HabitSchedule = { validFrom: '2026-11-01', type: 'none', weekdays: [], timesPerWeek: null };
 
 function habit(id: string, schedule: HabitSchedule, checks: string[] = [], archivedOn: string | null = null): HabitHistory {
-  return { id, name: id, createdOn: '2026-11-01', archivedOn, schedules: [schedule], checks: new Set(checks) };
+  return { id, name: id, createdOn: '2026-11-01', archivedOn, schedules: [schedule], remindAt: null, checks: new Set(checks) };
 }
 
 describe('streakLabel', () => {

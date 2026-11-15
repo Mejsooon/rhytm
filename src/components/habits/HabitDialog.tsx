@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { MinusIcon, PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogFooter, DialogHeader, DialogPanel, DialogPopup, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +14,13 @@ import type { HabitHistory, ScheduleType } from "@/lib/habits/types";
 import { previewNote, schedulePreview } from "@/lib/habits/view";
 import { cn } from "@/lib/utils";
 
-export type HabitInput = { name: string; type: ScheduleType; weekdays: number[]; timesPerWeek: number | null };
+export type HabitInput = {
+  name: string;
+  type: ScheduleType;
+  weekdays: number[];
+  timesPerWeek: number | null;
+  remindAt: string | null;
+};
 
 const MODES: { type: ScheduleType; label: string }[] = [
   { type: "daily", label: "Codziennie" },
@@ -59,8 +66,30 @@ function HabitForm({ mode, initial, today, onSubmit, onCancel }: HabitFormProps)
     initialSchedule?.type === "days" ? initialSchedule.weekdays : [1, 2, 3, 4, 5],
   );
   const [timesPerWeek, setTimesPerWeek] = useState(initialSchedule?.timesPerWeek ?? 3);
+  const [remindAt, setRemindAt] = useState(initial?.remindAt ?? "08:00");
+  const [reminderOn, setReminderOn] = useState(initial?.remindAt != null);
+  // null = jeszcze sprawdzamy; true = to urządzenie ma aktywną subskrypcję push.
+  const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Brak Notification, service workera albo subskrypcji (też zanim Task 3 doda /sw.js) = podpowiedź w oknie.
+  useEffect(() => {
+    let cancelled = false;
+    async function checkPush() {
+      let active = false;
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        const registration = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+        const subscription = await registration?.pushManager?.getSubscription().catch(() => null);
+        active = subscription != null;
+      }
+      if (!cancelled) setPushActive(active);
+    }
+    void checkPush();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const draft = {
     type,
@@ -96,8 +125,8 @@ function HabitForm({ mode, initial, today, onSubmit, onCancel }: HabitFormProps)
     setError(null);
     try {
       // Ta sama walidacja co na serwerze, żeby błędy (pusta nazwa, brak dni) pojawiały się od razu.
-      const valid = validateHabitInput({ name, ...draft });
-      await onSubmit({ name: valid.name, ...valid.schedule });
+      const valid = validateHabitInput({ name, ...draft, remindAt: reminderOn ? remindAt : null });
+      await onSubmit({ name: valid.name, ...valid.schedule, remindAt: valid.remindAt });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nie udało się zapisać nawyku");
     } finally {
@@ -218,6 +247,62 @@ function HabitForm({ mode, initial, today, onSubmit, onCancel }: HabitFormProps)
             <p className="text-xs text-[#7D7C78]">Zmiana obowiązuje od dziś. Wcześniejsze dni zostają bez zmian.</p>
           )}
         </fieldset>
+
+        {type !== "none" && (
+          <fieldset className="flex flex-col gap-2.5">
+            <legend className="mb-1.5 text-[13px] font-medium text-[#37352F]">Przypomnienie</legend>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div role="radiogroup" aria-label="Przypomnienie" className="grid grid-cols-2 gap-0.5 rounded-lg bg-[#F4F4F3] p-0.5">
+                {[
+                  { on: false, label: "Bez przypomnienia" },
+                  { on: true, label: "O godzinie" },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    role="radio"
+                    aria-checked={option.on === reminderOn}
+                    onClick={() => {
+                      setReminderOn(option.on);
+                      setError(null);
+                    }}
+                    className={cn(
+                      "h-[30px] rounded-md border px-3 text-[13px] font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      option.on === reminderOn
+                        ? "border-[#E6E6E4] bg-white text-[#191816] shadow-[0_1px_1px_rgba(0,0,0,0.04)]"
+                        : "border-transparent bg-transparent text-[#7D7C78] hover:text-[#37352F]",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {reminderOn && (
+                <Input
+                  type="time"
+                  step={60}
+                  required
+                  aria-label="Godzina przypomnienia"
+                  className={cn(QUIET_INPUT, "w-28")}
+                  value={remindAt}
+                  onChange={(event) => {
+                    setRemindAt(event.target.value);
+                    setError(null);
+                  }}
+                />
+              )}
+            </div>
+            {reminderOn && pushActive === false && (
+              <p className="text-xs leading-normal text-[#7D7C78]">
+                Włącz powiadomienia w{" "}
+                <Link href="/ustawienia" className="underline">
+                  Ustawieniach
+                </Link>
+                , żeby przypomnienia działały na tym urządzeniu.
+              </p>
+            )}
+          </fieldset>
+        )}
 
         <div className="flex flex-col gap-2">
           <span className="text-[13px] font-medium text-[#37352F]">Najbliższe 2 tygodnie</span>

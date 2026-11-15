@@ -9,6 +9,7 @@ function dailyHabit(id: string, checks: string[]): HabitHistory {
     createdOn: '2026-01-01',
     archivedOn: null,
     schedules: [{ validFrom: '2026-01-01', type: 'daily', weekdays: [], timesPerWeek: null }],
+    remindAt: null,
     checks: new Set(checks),
   };
 }

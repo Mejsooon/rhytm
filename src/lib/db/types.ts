@@ -198,6 +198,8 @@ export type Database = {
           position: number;
           archived_at: string | null;
           created_at: string | null;
+          remind_at: string | null;
+          last_reminded_on: string | null;
         };
         Insert: {
           id?: string;
@@ -206,6 +208,8 @@ export type Database = {
           position?: number;
           archived_at?: string | null;
           created_at?: string | null;
+          remind_at?: string | null;
+          last_reminded_on?: string | null;
         };
         Update: {
           id?: string;
@@ -214,6 +218,8 @@ export type Database = {
           position?: number;
           archived_at?: string | null;
           created_at?: string | null;
+          remind_at?: string | null;
+          last_reminded_on?: string | null;
         };
         Relationships: [];
       };

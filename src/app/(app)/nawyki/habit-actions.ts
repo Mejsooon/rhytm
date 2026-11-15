@@ -16,7 +16,13 @@ import { toDTO, type HabitHistoryDTO } from "@/lib/habits/types";
 
 const UNIQUE_VIOLATION = "23505";
 
-type HabitInput = { name: string; type: string; weekdays: number[]; timesPerWeek: number | null };
+type HabitInput = {
+  name: string;
+  type: string;
+  weekdays: number[];
+  timesPerWeek: number | null;
+  remindAt?: string | null;
+};
 
 // Błąd bazy: szczegóły do logów serwera, użytkownik dostaje polski komunikat.
 function dbFailure(message: string, error: { message: string }): ExpectedError {
@@ -27,7 +33,7 @@ function dbFailure(message: string, error: { message: string }): ExpectedError {
 // Tworzy nawyk i jego pierwszą wersję harmonogramu (valid_from = dziś). Zwraca nowy nawyk bez odhaczeń.
 export async function createHabit(input: HabitInput): Promise<ActionResult<HabitHistoryDTO>> {
   return asResult(async () => {
-    const { name, schedule } = expected(() => validateHabitInput(input));
+    const { name, schedule, remindAt } = expected(() => validateHabitInput(input));
     const profile = await ensureProfile();
     const today = todayIn(profile.timezone, new Date());
     const supabase = await createServerClient();
@@ -37,7 +43,7 @@ export async function createHabit(input: HabitInput): Promise<ActionResult<Habit
     if (last.error) throw dbFailure("Nie udało się wczytać nawyków", last.error);
     const position = (last.data[0]?.position ?? -1) + 1;
 
-    const habit = await supabase.from("habits").insert({ name, position }).select("*").single();
+    const habit = await supabase.from("habits").insert({ name, position, remind_at: remindAt }).select("*").single();
     if (habit.error) throw dbFailure("Nie udało się zapisać nawyku", habit.error);
 
     const version = await supabase.from("habit_schedules").insert({
@@ -62,6 +68,7 @@ export async function createHabit(input: HabitInput): Promise<ActionResult<Habit
       createdOn: today,
       archivedOn: null,
       schedules: [{ validFrom: today, ...schedule }],
+      remindAt,
       checks: new Set(),
     });
   });
@@ -71,7 +78,7 @@ export async function createHabit(input: HabitInput): Promise<ActionResult<Habit
 // (jeśli dzisiejsza wersja już istnieje, jest nadpisywana). Zwraca nawyk z odhaczeniami do dziś.
 export async function updateHabit(id: string, input: HabitInput): Promise<ActionResult<HabitHistoryDTO>> {
   return asResult(async () => {
-    const { name, schedule } = expected(() => validateHabitInput(input));
+    const { name, schedule, remindAt } = expected(() => validateHabitInput(input));
     const supabase = await createServerClient();
     // Przy wczytaniu jednego nawyku zakres służy tylko do okna odhaczeń, więc data UTC (±1 dzień) wystarcza.
     const approxToday = new Date().toISOString().slice(0, 10);
@@ -80,8 +87,12 @@ export async function updateHabit(id: string, input: HabitInput): Promise<Action
     if (!habit) throw new ExpectedError("Nie znaleziono nawyku");
     if (habit.archivedOn !== null) throw new ExpectedError("Nawyk jest zarchiwizowany");
 
-    if (name !== habit.name) {
-      const { error } = await supabase.from("habits").update({ name }).eq("id", id);
+    // Przesunięta godzina zeruje last_reminded_on, żeby przypomnienie mogło przyjść jeszcze dziś.
+    if (name !== habit.name || remindAt !== habit.remindAt) {
+      const { error } = await supabase
+        .from("habits")
+        .update(remindAt !== habit.remindAt ? { name, remind_at: remindAt, last_reminded_on: null } : { name })
+        .eq("id", id);
       if (error) throw dbFailure("Nie udało się zapisać nawyku", error);
     }
 

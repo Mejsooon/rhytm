@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CircleCheckIcon, PlusIcon } from "lucide-react";
+import { BellIcon, CircleCheckIcon, PlusIcon } from "lucide-react";
 import { archiveHabit, createHabit, setHabitCheck, updateHabit } from "@/app/(app)/nawyki/habit-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -213,7 +213,15 @@ export function HabitList({ initialHabits, date, today, initialSleepLogs, timezo
                       >
                         {row.habit.name}
                       </button>
-                      <span className="text-xs text-[#9B9A97]">{scheduleLabel(row.schedule)}</span>
+                      <span className="flex items-center gap-1 text-xs text-[#9B9A97]">
+                        {scheduleLabel(row.schedule)}
+                        {row.habit.remindAt && (
+                          <>
+                            <BellIcon aria-hidden="true" className="ms-1 size-3" />
+                            <span className="tabular-nums">{row.habit.remindAt}</span>
+                          </>
+                        )}
+                      </span>
                     </div>
                     {row.meta && <span className="shrink-0 text-xs text-[#7D7C78]">{row.meta}</span>}
                   </li>

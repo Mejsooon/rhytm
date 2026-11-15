@@ -22,3 +22,4 @@ for migration in supabase/migrations/*.sql; do
 done
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/rls.test.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/categories.test.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase/tests/habits_sleep.test.sql

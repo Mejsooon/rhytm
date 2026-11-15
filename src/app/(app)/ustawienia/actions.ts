@@ -24,6 +24,7 @@ export async function updateProfile(formData: FormData): Promise<UpdateProfileRe
     birth_date: String(formData.get("birth_date") ?? ""),
     sex: String(formData.get("sex") ?? ""),
     timezone: String(formData.get("timezone") ?? ""),
+    sleep_goal_min: String(formData.get("sleep_goal_min") ?? ""),
   });
   if (!result.ok) return result;
 

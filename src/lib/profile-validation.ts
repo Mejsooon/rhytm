@@ -4,6 +4,7 @@ export type ProfileInput = {
   birth_date: string;
   sex: string;
   timezone: string;
+  sleep_goal_min: string;
 };
 
 export type ProfileValues = {
@@ -12,6 +13,7 @@ export type ProfileValues = {
   birth_date: string | null;
   sex: "M" | "K" | null;
   timezone: string;
+  sleep_goal_min: number;
 };
 
 export type ProfileValidation =
@@ -28,6 +30,7 @@ export function validateProfile(input: ProfileInput): ProfileValidation {
     birth_date: null,
     sex: null,
     timezone: input.timezone,
+    sleep_goal_min: 480,
   };
 
   if (input.weight_kg.trim() !== "") {
@@ -56,6 +59,14 @@ export function validateProfile(input: ProfileInput): ProfileValidation {
   if (input.sex !== "") {
     if (input.sex === "M" || input.sex === "K") value.sex = input.sex;
     else errors.sex = "Wybierz płeć: mężczyzna lub kobieta.";
+  }
+
+  // Cel snu jako „G” albo „G:MM”; puste pole oznacza domyślne 8 godzin.
+  if (input.sleep_goal_min.trim() !== "") {
+    const match = /^(\d{1,2})(?::([0-5]\d))?$/.exec(input.sleep_goal_min.trim());
+    const minutes = match ? Number(match[1]) * 60 + Number(match[2] ?? 0) : NaN;
+    if (minutes >= 240 && minutes <= 720 && minutes % 15 === 0) value.sleep_goal_min = minutes;
+    else errors.sleep_goal_min = "Cel snu musi wynosić od 4 do 12 godzin (co 15 minut).";
   }
 
   if (!Intl.supportedValuesOf("timeZone").includes(input.timezone)) {

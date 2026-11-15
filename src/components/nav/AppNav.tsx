@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { Activity, CalendarDays, CircleCheck, Settings } from "lucide-react";
+import { Activity, CalendarDays, CircleCheck, Settings, Sun } from "lucide-react";
 import { LogoMark } from "@/components/brand/LogoMark";
 import { cn } from "@/lib/utils";
 
 // Zakładki główne: pełna etykieta na pasku bocznym, krótka na dolnym pasku.
 const tabs = [
+  { href: "/dzis", label: "Dziś", short: "Dziś", icon: Sun },
   { href: "/kalendarz", label: "Kalendarz", short: "Plan", icon: CalendarDays },
   { href: "/sport", label: "Sport", short: "Sport", icon: Activity },
   { href: "/nawyki", label: "Nawyki i sen", short: "Nawyki", icon: CircleCheck },

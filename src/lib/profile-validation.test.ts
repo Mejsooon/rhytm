@@ -7,14 +7,17 @@ const valid = {
   birth_date: "1999-05-20",
   sex: "M",
   timezone: "Europe/Warsaw",
+  sleep_goal_min: "8:00",
 };
+
+const SLEEP_GOAL_ERROR = "Cel snu musi wynosić od 4 do 12 godzin (co 15 minut).";
 
 describe("validateProfile", () => {
   it("przyjmuje poprawne dane i zamienia liczby", () => {
     const result = validateProfile(valid);
     expect(result).toEqual({
       ok: true,
-      value: { weight_kg: 80, height_cm: 180, birth_date: "1999-05-20", sex: "M", timezone: "Europe/Warsaw" },
+      value: { weight_kg: 80, height_cm: 180, birth_date: "1999-05-20", sex: "M", timezone: "Europe/Warsaw", sleep_goal_min: 480 },
     });
   });
 
@@ -22,7 +25,7 @@ describe("validateProfile", () => {
     const result = validateProfile({ ...valid, weight_kg: "", height_cm: "", birth_date: "", sex: "" });
     expect(result).toEqual({
       ok: true,
-      value: { weight_kg: null, height_cm: null, birth_date: null, sex: null, timezone: "Europe/Warsaw" },
+      value: { weight_kg: null, height_cm: null, birth_date: null, sex: null, timezone: "Europe/Warsaw", sleep_goal_min: 480 },
     });
   });
 
@@ -43,9 +46,25 @@ describe("validateProfile", () => {
     ["sex", "X", "Wybierz płeć: mężczyzna lub kobieta."],
     ["timezone", "Mars/Olympus", "Wybierz poprawną strefę czasową."],
     ["timezone", "", "Wybierz poprawną strefę czasową."],
+    ["sleep_goal_min", "3:45", SLEEP_GOAL_ERROR],
+    ["sleep_goal_min", "7:20", SLEEP_GOAL_ERROR],
+    ["sleep_goal_min", "12:15", SLEEP_GOAL_ERROR],
+    ["sleep_goal_min", "abc", SLEEP_GOAL_ERROR],
+    ["sleep_goal_min", "7:5", SLEEP_GOAL_ERROR],
   ])("odrzuca %s = %j", (field, value, message) => {
     const result = validateProfile({ ...valid, [field]: value });
     expect(result).toEqual({ ok: false, errors: { [field]: message } });
+  });
+
+  it.each([
+    ["7:30", 450],
+    ["8", 480],
+    ["4:00", 240],
+    ["12", 720],
+    ["", 480],
+  ])("cel snu %j daje %i minut", (input, minutes) => {
+    const result = validateProfile({ ...valid, sleep_goal_min: input });
+    expect(result.ok && result.value.sleep_goal_min).toBe(minutes);
   });
 
   it("zbiera błędy z kilku pól naraz", () => {

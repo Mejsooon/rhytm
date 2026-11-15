@@ -1,6 +1,6 @@
 # Rhytm
 
-Aplikacja do organizacji życia: kalendarz bloków czasu z zadaniami (etap 1), a dalej kalendarz sportowy, nawyki i sen.
+Aplikacja do organizacji życia: kalendarz bloków czasu z zadaniami (etap 1), nawyki, sen i ekran „Dziś” (etap 2), a dalej kalendarz sportowy.
 
 Technologie: Next.js 16, Clerk (logowanie), Supabase (baza PostgreSQL z RLS), FullCalendar v7.
 
@@ -35,6 +35,8 @@ cp .env.local.example .env.local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → **Project Settings → API** → klucz `anon` / publishable. |
 
 Pozostałe zmienne `NEXT_PUBLIC_CLERK_*` (adresy logowania i przekierowań) zostaw takie jak we wzorze.
+`NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` (i `..._SIGN_UP_...`) = `/dzis`: po zalogowaniu aplikacja
+otwiera ekran „Dziś”. Jeśli masz starszy `.env.local` z `/kalendarz`, zmień te dwie wartości.
 
 ### Krok 3. Połącz Clerka z Supabase (najważniejszy krok)
 
@@ -56,13 +58,19 @@ Masz dwie drogi, wybierz jedną:
 
 - **Edytor SQL (najprościej):** Supabase Dashboard → **SQL Editor** → wklej całą zawartość pliku
   `supabase/migrations/0001_init.sql` → **Run**, a potem w ten sam sposób
-  `supabase/migrations/0002_categories.sql` (kategorie bloków; uruchom ją po `0001`).
+  `supabase/migrations/0002_categories.sql` (kategorie bloków; uruchom ją po `0001`), a na końcu
+  `supabase/migrations/0003_habits_sleep.sql` (nawyki i sen; uruchom ją po `0002`). Kolejność: `0001` → `0002` → `0003`.
 - **Supabase CLI:** `supabase link --project-ref <id-projektu>`, a potem `supabase db push`.
 
 Migracja tworzy tabele (`profiles`, `blocks`, `block_exceptions`, `block_tasks`), uprawnienia i polityki RLS
 „tylko własne wiersze”. Migracja `0002_categories.sql` dodaje tabelę kategorii i przypisuje do nich bloki:
 kolory istniejących bloków zamienia na kategorie o nazwach kolorów (np. „Niebieski”), które możesz potem
-zmienić ołówkiem w menu kalendarza (`supabase db push` uruchamia obie migracje po kolei).
+zmienić ołówkiem w menu kalendarza (`supabase db push` uruchamia wszystkie migracje po kolei).
+
+Migracja `0003_habits_sleep.sql` (etap 2) tworzy tabele nawyków (wersje harmonogramu i odhaczenia) oraz
+dziennik snu, każdą z RLS „tylko własne wiersze”, i dodaje do `profiles` kolumnę `sleep_goal_min` (cel snu,
+domyślnie 8 h). Niczego nie usuwa, więc **uruchom ją przed wdrożeniem kodu etapu 2**, a stary kod dalej działa.
+Na hostowanym projekcie Supabase jest już zastosowana; ten opis jest dla świeżych instalacji.
 
 > **Uwaga przy aktualizacji istniejącej instalacji:** migrację `0002_categories.sql` trzeba wdrożyć razem z tym
 > kodem. Stary kod przestaje działać po `0002` (migracja usuwa kolumnę `color`), a nowy kod bez `0002` psuje cały
@@ -76,12 +84,16 @@ zmienić ołówkiem w menu kalendarza (`supabase db push` uruchamia obie migracj
 npm run dev
 ```
 
-Otwórz <http://localhost:3000>, zarejestruj się (rejestracja jest otwarta) i przejdź do zakładki **Kalendarz**.
-Profil w bazie zakłada się sam przy pierwszym wejściu (strefa czasowa domyślnie `Europe/Warsaw`).
+Otwórz <http://localhost:3000>, zarejestruj się (rejestracja jest otwarta). Po zalogowaniu stroną startową jest
+**Dziś** (`/dzis`): plan dnia, nawyki do odhaczenia i ostatnia noc. Dalej są zakładki **Kalendarz** (`/kalendarz`)
+i **Nawyki i sen** (`/nawyki`). Profil w bazie zakłada się sam przy pierwszym wejściu (strefa czasowa domyślnie
+`Europe/Warsaw`, cel snu 8:00).
+
+Cel snu (linia celu na wykresie snu, od 4 do 12 godzin) ustawisz w **Ustawieniach** w polu „Cel snu”.
 
 ### Lista kontrolna po pierwszym uruchomieniu
 
-- [ ] Logowanie działa, po zalogowaniu widać zakładkę Kalendarz bez komunikatu o błędzie.
+- [ ] Logowanie działa, po zalogowaniu otwiera się ekran „Dziś” (`/dzis`) bez komunikatu o błędzie.
 - [ ] Przeciągnięcie po pustym miejscu otwiera formularz „Nowy blok”, a po zapisie blok zostaje po odświeżeniu strony.
 - [ ] W Supabase (**Table Editor → blocks**) nowy wiersz ma wypełnione `user_id` (ID użytkownika z Clerka, `user_...`).
 - [ ] Blok powtarzany: przesunięcie jednego wystąpienia pyta „Tylko to / To i następne / Wszystkie”.
@@ -89,6 +101,8 @@ Profil w bazie zakłada się sam przy pierwszym wejściu (strefa czasowa domyśl
 - [ ] **Strefa czasowa:** otwórz kalendarz w przeglądarce ustawionej na inną strefę (np. w Chrome DevTools →
       **More tools → Sensors → Location → Tokyo**, albo zmień strefę systemu) i sprawdź, że godziny bloków
       są takie same jak wcześniej (kalendarz pokazuje czas ze strefy profilu, nie przeglądarki).
+- [ ] Nawyki: na `/nawyki` utwórz nawyk, odhacz go na `/dzis` i sprawdź, że na `/nawyki` jest odhaczony.
+- [ ] Sen: zapisz noc (np. 23:40 → 07:10 daje „7 h 30”) i sprawdź ją na `/dzis`; w Ustawieniach zmień „Cel snu”.
 - [ ] Drugi użytkownik (inne konto) nie widzi bloków pierwszego.
 
 ---
@@ -102,7 +116,7 @@ Profil w bazie zakłada się sam przy pierwszym wejściu (strefa czasowa domyśl
 | `npm run lint` | Sprawdzenie kodu (ESLint). |
 | `npm test` | Testy jednostkowe (Vitest, pliki `src/**/*.test.ts`). Nie potrzebują bazy ani kluczy. |
 | `npm run test:db` | Test polityk RLS na lokalnym PostgreSQL (opis niżej). |
-| `npm run test:e2e` | Test end-to-end w przeglądarce (Playwright, opis niżej). |
+| `npm run test:e2e` | Test end-to-end w przeglądarce (Playwright: kalendarz, nawyki, sen i ekran „Dziś”; opis niżej). |
 
 ### `npm run test:db` – czego potrzebuje
 
@@ -129,6 +143,13 @@ Test potrzebuje działającej konfiguracji z kroków 1–4 oraz konta testowego 
 | `E2E_CLERK_USER_PASSWORD` | Jego hasło. |
 | `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL` | Jak w kroku 2. |
 
+Test nawyków (`e2e/habits.spec.ts`) tworzy nawyk z unikalną nazwą i zapisuje sen z dzisiejszej nocy (23:40–07:10).
+Na koniec archiwizuje nawyk i usuwa swój wpis snu, więc możesz go powtarzać.
+
+> **Uwaga:** jeśli konto testowe ma już wpis snu z dzisiejszej nocy, test go **czasowo zastępuje**: odczytuje
+> (godziny, samopoczucie, notatka), usuwa, a na końcu przywraca. Awaria w trakcie (np. zamknięty terminal) może
+> zostawić wpis testowy. Dlatego użyj **osobnego konta testowego**, a nie swojego głównego.
+
 Gdy którejś zmiennej brakuje, test jest **pomijany** (skipped) z listą brakujących nazw, a serwer nie startuje.
 Gdy wszystkie są, Playwright sam uruchamia `npm run dev`.
 
@@ -140,5 +161,9 @@ Gdy wszystkie są, Playwright sam uruchamia `npm run dev`.
 - `src/lib/calendar/` – logika kalendarza z testami: rozwijanie powtórzeń (`expand.ts`),
   planowanie edycji „tylko to / to i następne / wszystkie” (`plan-edit.ts`) i jej zapis (`execute.ts`).
 - `src/components/calendar/` – kalendarz, formularz bloku, dialog zakresu, panel zadań.
+- `src/lib/habits/`, `src/lib/sleep/` – logika nawyków (harmonogramy, serie, wynik dnia) i snu (czas przez północ
+  i zmianę czasu, słupki wykresu) z testami.
+- `src/components/habits/`, `src/components/sleep/`, `src/components/today/` – ekrany `/nawyki` i `/dzis`.
+- `e2e/` – testy end-to-end (Playwright).
 - `supabase/migrations/` – schemat bazy i polityki RLS.
 - `docs/superpowers/specs/` – specyfikacja projektu.

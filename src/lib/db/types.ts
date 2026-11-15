@@ -20,6 +20,7 @@ export type Database = {
           birth_date: string | null;
           sex: string | null;
           timezone: string;
+          sleep_goal_min: number;
         };
         Insert: {
           user_id?: string;
@@ -28,6 +29,7 @@ export type Database = {
           birth_date?: string | null;
           sex?: string | null;
           timezone?: string;
+          sleep_goal_min?: number;
         };
         Update: {
           user_id?: string;
@@ -36,6 +38,7 @@ export type Database = {
           birth_date?: string | null;
           sex?: string | null;
           timezone?: string;
+          sleep_goal_min?: number;
         };
         Relationships: [];
       };
@@ -186,6 +189,115 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      habits: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          position: number;
+          archived_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          name: string;
+          position?: number;
+          archived_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          position?: number;
+          archived_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
+      habit_schedules: {
+        Row: {
+          habit_id: string;
+          valid_from: string;
+          schedule_type: "daily" | "days" | "weekly" | "none";
+          weekdays: number[] | null;
+          times_per_week: number | null;
+        };
+        Insert: {
+          habit_id: string;
+          valid_from: string;
+          schedule_type: "daily" | "days" | "weekly" | "none";
+          weekdays?: number[] | null;
+          times_per_week?: number | null;
+        };
+        Update: {
+          habit_id?: string;
+          valid_from?: string;
+          schedule_type?: "daily" | "days" | "weekly" | "none";
+          weekdays?: number[] | null;
+          times_per_week?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "habit_schedules_habit_id_fkey";
+            columns: ["habit_id"];
+            isOneToOne: false;
+            referencedRelation: "habits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      habit_checks: {
+        Row: {
+          habit_id: string;
+          date: string;
+        };
+        Insert: {
+          habit_id: string;
+          date: string;
+        };
+        Update: {
+          habit_id?: string;
+          date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "habit_checks_habit_id_fkey";
+            columns: ["habit_id"];
+            isOneToOne: false;
+            referencedRelation: "habits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sleep_logs: {
+        Row: {
+          user_id: string;
+          date: string;
+          slept_at: string;
+          woke_at: string;
+          feeling: number;
+          note: string | null;
+        };
+        Insert: {
+          user_id?: string;
+          date: string;
+          slept_at: string;
+          woke_at: string;
+          feeling: number;
+          note?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          date?: string;
+          slept_at?: string;
+          woke_at?: string;
+          feeling?: number;
+          note?: string | null;
+        };
+        Relationships: [];
       };
     };
     Views: { [_ in never]: never };

@@ -17,6 +17,7 @@ type Profile = {
   birth_date: string | null;
   sex: string | null;
   timezone: string;
+  sleep_goal_min: number;
 };
 
 export function SettingsTabs({ profile, timezones }: { profile: Profile; timezones: string[] }) {
@@ -97,6 +98,18 @@ export function SettingsTabs({ profile, timezones }: { profile: Profile; timezon
             </Select>
             <FieldDescription>Bloki powtarzane zostają o tej samej godzinie także po zmianie czasu.</FieldDescription>
             {errors.timezone && <FieldError match>{errors.timezone}</FieldError>}
+          </Field>
+
+          <Field name="sleep_goal_min" invalid={!!errors.sleep_goal_min}>
+            <FieldLabel>Cel snu</FieldLabel>
+            <Input
+              type="text"
+              inputMode="numeric"
+              placeholder="8:00"
+              defaultValue={`${Math.floor(profile.sleep_goal_min / 60)}:${String(profile.sleep_goal_min % 60).padStart(2, "0")}`}
+            />
+            <FieldDescription>Linia celu na wykresie snu. Od 4 do 12 godzin.</FieldDescription>
+            {errors.sleep_goal_min && <FieldError match>{errors.sleep_goal_min}</FieldError>}
           </Field>
 
           {"form" in errors && errors.form && <p className="text-destructive-foreground text-sm">{errors.form}</p>}

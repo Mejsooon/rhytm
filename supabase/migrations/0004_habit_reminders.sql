@@ -13,13 +13,20 @@ create table push_subscriptions (
   endpoint text not null unique,
   p256dh text not null,
   auth text not null,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  -- te same limity długości co w save_push_subscription i validatePushSubscription
+  constraint push_subscriptions_lengths check (
+    char_length(endpoint) between 1 and 1000
+    and char_length(p256dh) between 1 and 1000
+    and char_length(auth) between 1 and 1000)
 );
 create index push_subscriptions_user_id_idx on push_subscriptions (user_id);
 
--- Supabase domyślnie daje anon/authenticated wszystko na nowych tabelach: zostawiamy tylko to, czego używa aplikacja
+-- Supabase domyślnie daje anon/authenticated wszystko na nowych tabelach: zostawiamy tylko to, czego używa aplikacja.
+-- Bez INSERT: jedyna droga zapisu to save_push_subscription, która sprawdza listę dozwolonych serwerów push
+-- (inaczej cron wysyłałby żądania pod dowolny adres podany przez użytkownika).
 revoke all on push_subscriptions from anon, authenticated, service_role;
-grant select, insert, delete on push_subscriptions to authenticated;
+grant select, delete on push_subscriptions to authenticated;
 
 alter table push_subscriptions enable row level security;
 
@@ -142,6 +149,8 @@ grant execute on function public.remove_push_subscriptions(text, text[]) to anon
 -- Zapisuje subskrypcję przeglądarki dla zalogowanego użytkownika. Endpoint jest unikalny globalnie,
 -- a RLS ukrywa cudze wiersze, więc gdy w tej samej przeglądarce zaloguje się inny użytkownik,
 -- funkcja przejmuje endpoint: usuwa jego dotychczasowy wiersz (czyjkolwiek) i wstawia nowy.
+-- Endpoint musi być adresem https jednego ze znanych serwerów push (ta sama lista co w
+-- src/lib/push/subscription.ts), a każde pole niepuste i najwyżej 1000 znaków.
 create function public.save_push_subscription(p_endpoint text, p_p256dh text, p_auth text)
 returns void
 language plpgsql
@@ -150,9 +159,28 @@ set search_path = ''
 as $$
 declare
   v_user_id text := (select auth.jwt()->>'sub');
+  v_host text;
 begin
   if v_user_id is null then
     raise exception 'unauthorized';
+  end if;
+
+  if coalesce(char_length(p_endpoint), 0) not between 1 and 1000
+    or coalesce(char_length(p_p256dh), 0) not between 1 and 1000
+    or coalesce(char_length(p_auth), 0) not between 1 and 1000
+    or left(p_endpoint, 8) <> 'https://' then
+    raise exception 'invalid subscription';
+  end if;
+
+  -- host = tekst między 'https://' a pierwszym '/'; dopuszczamy tylko litery, cyfry, '-' i kropki
+  -- między etykietami, więc odpada userinfo ('@'), port (':'), '\', '?' i '#'
+  v_host := lower(split_part(substr(p_endpoint, 9), '/', 1));
+  if v_host !~ '^[a-z0-9-]+(\.[a-z0-9-]+)*$'
+    or not (
+      v_host in ('fcm.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com')
+      or v_host like '%.push.apple.com'
+      or v_host like '%.notify.windows.com') then
+    raise exception 'invalid subscription';
   end if;
 
   delete from public.push_subscriptions as ps

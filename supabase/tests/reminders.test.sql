@@ -195,22 +195,28 @@ begin
 end $$;
 reset role;
 
--- ===== RLS push_subscriptions =====
+-- ===== push_subscriptions: authenticated tylko czyta i usuwa swoje, zapis wyłącznie przez funkcję =====
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"u2","role":"authenticated"}';
 do $$
 begin
   if (select count(*) from push_subscriptions) <> 0 then raise exception 'FAIL: u2 widzi subskrypcje u1'; end if;
   begin
-    insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ('u1', 'https://push.example/podszyta', 'p', 'a');
+    insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ('u1', 'https://fcm.googleapis.com/podszyta', 'p', 'a');
     raise exception 'FAIL: u2 wstawił subskrypcję jako u1';
   exception when insufficient_privilege then
     null; -- oczekiwane
   end;
+  begin
+    insert into push_subscriptions (endpoint, p256dh, auth) values ('http://169.254.169.254/x', 'p', 'a');
+    raise exception 'FAIL: authenticated wstawił subskrypcję bezpośrednio (z pominięciem save_push_subscription)';
+  exception when insufficient_privilege then
+    null; -- oczekiwane
+  end;
   delete from push_subscriptions;
-  insert into push_subscriptions (endpoint, p256dh, auth) values ('https://push.example/u2-telefon', 'p', 'a');
+  perform save_push_subscription('https://fcm.googleapis.com/fcm/send/u2-telefon', 'p', 'a');
   if (select user_id from push_subscriptions) is distinct from 'u2' then
-    raise exception 'FAIL: push_subscriptions.user_id nie wzięło domyślnie sub z JWT';
+    raise exception 'FAIL: save_push_subscription nie zapisał subskrypcji jako u2';
   end if;
 end $$;
 
@@ -222,21 +228,88 @@ begin
   end if;
 end $$;
 
--- ===== save_push_subscription: przejęcie endpointu przez innego użytkownika =====
+-- ===== save_push_subscription: lista dozwolonych serwerów push i limity długości =====
+do $$
+declare
+  v_endpoint text;
+  v_bad record;
+begin
+  foreach v_endpoint in array array[
+    'https://fcm.googleapis.com/fcm/send/ok-1',
+    'https://updates.push.services.mozilla.com/wpush/v2/ok-2',
+    'https://web.push.apple.com/ok-3',
+    'https://api.push.apple.com/ok-4',
+    'https://wns2-db5p.notify.windows.com/w/?token=ok-5',
+    'https://FCM.GoogleAPIs.com/fcm/send/ok-6'
+  ] loop
+    perform save_push_subscription(v_endpoint, 'p', 'a');
+  end loop;
+  if (select count(*) from push_subscriptions where endpoint like '%ok-%') <> 6 then
+    raise exception 'FAIL: nie wszystkie dozwolone endpointy zostały zapisane';
+  end if;
+
+  for v_bad in
+    select * from (values
+      ('http://169.254.169.254/x', 'p', 'a'),
+      ('http://fcm.googleapis.com/x', 'p', 'a'),
+      ('https://evil.example/x', 'p', 'a'),
+      ('https://fcm.googleapis.com.evil.com/x', 'p', 'a'),
+      ('https://user@fcm.googleapis.com/x', 'p', 'a'),
+      ('https://x@api.push.apple.com/x', 'p', 'a'),
+      ('https://fcm.googleapis.com:8443/x', 'p', 'a'),
+      ('https://evil.com\.push.apple.com/x', 'p', 'a'),
+      ('https://.push.apple.com/x', 'p', 'a'),
+      ('https://push.apple.com/x', 'p', 'a'),
+      ('https://fcm.googleapis.com/x', 'p', repeat('a', 1001)),
+      ('https://fcm.googleapis.com/x', '', 'a'),
+      ('https://fcm.googleapis.com/x', 'p', null),
+      ('https://fcm.googleapis.com/' || repeat('a', 980), 'p', 'a')
+    ) as t (endpoint, p256dh, auth)
+  loop
+    begin
+      perform save_push_subscription(v_bad.endpoint, v_bad.p256dh, v_bad.auth);
+      raise exception 'FAIL: przyjęto niedozwoloną subskrypcję %', left(v_bad.endpoint, 60);
+    exception when raise_exception then
+      if sqlerrm <> 'invalid subscription' then raise; end if;
+    end;
+  end loop;
+end $$;
+reset role;
+
+-- CHECK pilnuje limitów długości także dla zapisu z pominięciem funkcji (np. właściciel bazy)
 do $$
 begin
-  perform save_push_subscription('https://push.example/wspolny', 'p-u1', 'a-u1');
+  begin
+    insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ('u1', 'https://fcm.googleapis.com/dlugi', 'p', repeat('a', 1001));
+    raise exception 'FAIL: CHECK przepuścił auth o 1001 znakach';
+  exception when check_violation then
+    null; -- oczekiwane
+  end;
+  begin
+    insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ('u1', 'https://fcm.googleapis.com/pusty', '', 'a');
+    raise exception 'FAIL: CHECK przepuścił puste p256dh';
+  exception when check_violation then
+    null; -- oczekiwane
+  end;
+end $$;
+
+-- ===== save_push_subscription: przejęcie endpointu przez innego użytkownika =====
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"u1","role":"authenticated"}';
+do $$
+begin
+  perform save_push_subscription('https://fcm.googleapis.com/wspolny', 'p-u1', 'a-u1');
 end $$;
 set local request.jwt.claims = '{"sub":"u2","role":"authenticated"}';
 do $$
 begin
-  perform save_push_subscription('https://push.example/wspolny', 'p-u2', 'a-u2');
+  perform save_push_subscription('https://fcm.googleapis.com/wspolny', 'p-u2', 'a-u2');
 end $$;
 set local request.jwt.claims = '{"role":"authenticated"}';
 do $$
 begin
   begin
-    perform save_push_subscription('https://push.example/bez-sub', 'p', 'a');
+    perform save_push_subscription('https://fcm.googleapis.com/bez-sub', 'p', 'a');
     raise exception 'FAIL: zapis subskrypcji bez sub przyjęty';
   exception when raise_exception then
     if sqlerrm <> 'unauthorized' then raise; end if;
@@ -246,14 +319,14 @@ reset role;
 
 do $$
 begin
-  if (select count(*) from push_subscriptions where endpoint = 'https://push.example/wspolny') <> 1 then
+  if (select count(*) from push_subscriptions where endpoint = 'https://fcm.googleapis.com/wspolny') <> 1 then
     raise exception 'FAIL: wspólny endpoint nie ma dokładnie 1 wiersza';
   end if;
   if (select user_id || '/' || p256dh || '/' || auth from push_subscriptions
-      where endpoint = 'https://push.example/wspolny') is distinct from 'u2/p-u2/a-u2' then
+      where endpoint = 'https://fcm.googleapis.com/wspolny') is distinct from 'u2/p-u2/a-u2' then
     raise exception 'FAIL: wspólny endpoint nie należy do u2 z jego kluczami';
   end if;
-  if exists (select 1 from push_subscriptions where endpoint = 'https://push.example/bez-sub') then
+  if exists (select 1 from push_subscriptions where endpoint = 'https://fcm.googleapis.com/bez-sub') then
     raise exception 'FAIL: zapisano subskrypcję bez sub';
   end if;
 end $$;
@@ -262,7 +335,7 @@ set local role anon;
 do $$
 begin
   begin
-    perform save_push_subscription('https://push.example/anon', 'p', 'a');
+    perform save_push_subscription('https://fcm.googleapis.com/anon', 'p', 'a');
     raise exception 'FAIL: anon wywołał save_push_subscription';
   exception when insufficient_privilege then
     null; -- oczekiwane

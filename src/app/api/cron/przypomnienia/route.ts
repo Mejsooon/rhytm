@@ -17,12 +17,10 @@ type Reminder = {
 // claim_due_habit_reminders, nagłówek Authorization: Bearer <CRON_SECRET>.
 export async function POST(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
-  const token = (request.headers.get("authorization") ?? "").replace(
-    /^Bearer /,
-    "",
-  );
-  const tokenBytes = Buffer.from(token);
-  const secretBytes = Buffer.from(cronSecret ?? "");
+  // Wymagamy dokładnie "Bearer <sekret>"; sam sekret bez prefiksu jest odrzucany.
+  const header = request.headers.get("authorization") ?? "";
+  const tokenBytes = Buffer.from(header);
+  const secretBytes = Buffer.from(`Bearer ${cronSecret ?? ""}`);
   if (
     !cronSecret ||
     tokenBytes.length !== secretBytes.length ||
@@ -52,11 +50,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "bad request" }, { status: 400 });
   }
 
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT!,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!,
-  );
+  const vapidSubject = process.env.VAPID_SUBJECT;
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!vapidSubject || !vapidPublicKey || !vapidPrivateKey) {
+    console.error("Brak konfiguracji VAPID (VAPID_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)");
+    return Response.json({ error: "vapid not configured" }, { status: 500 });
+  }
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
   const results = await Promise.allSettled(
     reminders.map((reminder) =>
@@ -71,7 +72,8 @@ export async function POST(request: Request) {
           tag: reminder.habit_id,
           url: "/dzis",
         }),
-        { TTL: 3600 },
+        // timeout: zawieszony serwer push nie może zatrzymać całej wysyłki
+        { TTL: 3600, timeout: 10000 },
       ),
     ),
   );

@@ -71,7 +71,8 @@
   - Tabela `push_subscriptions`:
     - kolumny: `id uuid pk default gen_random_uuid()`, `user_id text not null default (auth.jwt()->>'sub')`, `endpoint text not null unique`, `p256dh text not null`, `auth text not null`, `created_at timestamptz default now()`;
     - RLS `push_subscriptions_own` (for all, `user_id = (select auth.jwt()->>'sub')`);
-    - grant `select, insert, delete` dla `authenticated`.
+    - grant `select, delete` dla `authenticated` (bez `insert`: zapis tylko przez `save_push_subscription` z listą dozwolonych serwerów push; poprawka z przeglądu końcowego);
+    - CHECK: `endpoint`, `p256dh`, `auth` niepuste i najwyżej 1000 znaków.
   - `public.claim_due_habit_reminders(p_now timestamptz) returns table(endpoint text, p256dh text, auth text, habit_id uuid, habit_name text)`:
     - `security definer`, `set search_path = ''`;
     - `execute` tylko dla właściciela (cron działa jako `postgres`);

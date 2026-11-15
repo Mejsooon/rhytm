@@ -14,16 +14,21 @@ export function PushToggle() {
 
   useEffect(() => {
     async function detect() {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return setState("unsupported");
+      try {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) return setState("unsupported");
 
-      const isIos = /iPhone|iPad/.test(navigator.userAgent);
-      const standalone = window.matchMedia("(display-mode: standalone)").matches;
-      if (isIos && !standalone) return setState("ios-install");
-      if (Notification.permission === "denied") return setState("denied");
+        const isIos = /iPhone|iPad/.test(navigator.userAgent);
+        const standalone = window.matchMedia("(display-mode: standalone)").matches;
+        if (isIos && !standalone) return setState("ios-install");
+        if (Notification.permission === "denied") return setState("denied");
 
-      const registration = await navigator.serviceWorker.getRegistration("/");
-      const subscription = await registration?.pushManager.getSubscription();
-      setState(subscription ? "on" : "off");
+        const registration = await navigator.serviceWorker.getRegistration("/");
+        const subscription = await registration?.pushManager.getSubscription();
+        setState(subscription ? "on" : "off");
+      } catch {
+        // np. przeglądarka blokuje service workery (tryb prywatny) — pokazujemy przycisk zamiast wiecznego ładowania
+        setState("off");
+      }
     }
     detect();
   }, []);

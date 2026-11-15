@@ -283,7 +283,7 @@ function HabitForm({ mode, initial, today, onSubmit, onCancel }: HabitFormProps)
                   step={60}
                   required
                   aria-label="Godzina przypomnienia"
-                  className={cn(QUIET_INPUT, "w-28")}
+                  className={cn(QUIET_INPUT, "w-36 min-w-36 shrink-0")}
                   value={remindAt}
                   onChange={(event) => {
                     setRemindAt(event.target.value);
